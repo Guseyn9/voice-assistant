@@ -678,17 +678,18 @@ export class VoiceChannel {
 
       return ctx;
     }
-public getScenarioById(id: string): ScenarioDefinition | undefined {
-    return this.scenarioRegistry.find(s => s.id === id);
-  }
-
-  public getScenarioRegistry(): ScenarioDefinition[] {
-    return [...this.scenarioRegistry];
-  }
-    if (intentRes.status === 'AMBIGUOUS_INTENT') {
+if (intentRes.status === 'AMBIGUOUS_INTENT') {
       return intentRes;
     }
 
     return { status: 'NO_MATCH' };
   }
+
+  public getScenarioById(id: string): ScenarioDefinition | undefined {
+      return this.scenarioRegistry.find(s => s.id === id);
+    }
+  
+    public getScenarioRegistry(): ScenarioDefinition[] {
+      return [...this.scenarioRegistry];
+    }
 }
