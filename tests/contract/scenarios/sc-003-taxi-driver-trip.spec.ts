@@ -16,15 +16,22 @@ test.describe('SC-003: Taxi Driver End-to-End Trip - Contract Tests', () => {
     expect(scenarioSet.id).toBe('scenario-set-sc-003-taxi-driver-trip');
     expect(scenarioSet.name).toBe('Taxi Driver End-to-End Trip Workflow');
     expect(Array.isArray(scenarioSet.scenarios)).toBe(true);
-    expect(scenarioSet.scenarios.length).toBe(1);
+    expect(scenarioSet.scenarios.length).toBe(5);
   });
 
-  test('CONTRACT-SC003-02: End-to-End Sequential Steps & Uniform orderId 1001', async () => {
-    const sc = scenarioSet.scenarios[0];
-    expect(sc.id).toBe('sc-003-taxi-driver-trip-workflow');
-    
-    // Check emit events sequence
-    const emitEvents = sc.steps.filter((s: any) => s.kind === 'emit').map((s: any) => s.event.type);
+  test('CONTRACT-SC003-02: All trip stages have correct events and terminal steps', async () => {
+    const scenarioIds = scenarioSet.scenarios.map((sc: any) => sc.id);
+    expect(scenarioIds).toEqual([
+      'sc003-accept-order',
+      'sc003-arrived',
+      'sc003-start-trip',
+      'sc003-finish-trip',
+      'sc003-become-available'
+    ]);
+
+    const emitEvents = scenarioSet.scenarios.flatMap((sc: any) =>
+      sc.steps.filter((step: any) => step.kind === 'emit').map((step: any) => step.event.type)
+    );
     expect(emitEvents).toEqual([
       'driver.order.accepted',
       'driver.arrived',
@@ -33,14 +40,13 @@ test.describe('SC-003: Taxi Driver End-to-End Trip - Contract Tests', () => {
       'driver.available'
     ]);
 
-    // Check uniform orderId = 1001 for order steps
-    expect(sc.steps[0].event.payload.orderId).toBe(1001);
-    expect(sc.steps[2].event.payload.orderId).toBe(1001);
-    expect(sc.steps[4].event.payload.orderId).toBe(1001);
-    expect(sc.steps[6].event.payload.orderId).toBe(1001);
-
-    // Check terminal step
-    expect(sc.steps[sc.steps.length - 1].kind).toBe('end');
+    for (const sc of scenarioSet.scenarios) {
+      expect(sc.steps[sc.steps.length - 1].kind).toBe('end');
+    }
+    for (const sc of scenarioSet.scenarios.slice(0, 4)) {
+      const orderEvent = sc.steps.find((step: any) => step.kind === 'emit' && step.event.payload.orderId !== undefined);
+      expect(orderEvent.event.payload.orderId).toBe(1001);
+    }
   });
 
 });
