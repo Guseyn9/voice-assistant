@@ -1,8 +1,7 @@
 import { test, expect } from '@playwright/test';
-import { fileURLToPath } from 'node:url';
 import * as path from 'path';
 
-const scenarioFilePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../scenario-platform-012-production-pipeline.json');
+const scenarioFilePath = path.resolve(__dirname, '../../../scenario-platform-012-production-pipeline.json');
 
 test.describe('E2E: PLATFORM-012 Production Voice Pipeline Integration Suite', () => {
 
@@ -36,7 +35,7 @@ test.describe('E2E: PLATFORM-012 Production Voice Pipeline Integration Suite', (
     // 1. Voice input -> createContext
     await emitVoicePhrase(page, 'Прими заказ 1001');
 
-    const contexts = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.listContexts((window as any).__VOICE_DEMO_APP__.getIdentity()));
+    const contexts = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.listContexts());
     expect(contexts.length).toBe(1);
     expect(contexts[0].status).toBe('WAITING_FOR_SLOT');
     expect(contexts[0].slots.orderId).toBe(1001);
@@ -44,7 +43,7 @@ test.describe('E2E: PLATFORM-012 Production Voice Pipeline Integration Suite', (
     // 2. Slot filling -> COMPLETED -> Action Dispatch
     await emitVoicePhrase(page, 'Картой');
 
-    const logs = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity()));
+    const logs = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getExecutionLogs());
     expect(logs.length).toBe(1);
     expect(logs[0].event.type).toBe('driver.order.accepted');
     expect(logs[0].event.payload).toEqual({ orderId: 1001, payment: 'card' });
@@ -56,7 +55,7 @@ test.describe('E2E: PLATFORM-012 Production Voice Pipeline Integration Suite', (
     await emitVoicePhrase(page, 'Прими заказ 1001');
     await emitVoicePhrase(page, 'Прими заказ 1002');
 
-    const contexts = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.listContexts((window as any).__VOICE_DEMO_APP__.getIdentity()));
+    const contexts = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.listContexts());
     const idA = contexts.find((c: any) => c.slots.orderId === 1001).contextId;
     const idB = contexts.find((c: any) => c.slots.orderId === 1002).contextId;
 
@@ -66,7 +65,7 @@ test.describe('E2E: PLATFORM-012 Production Voice Pipeline Integration Suite', (
     await emitVoicePhrase(page, 'Заказ 1002');
     await emitVoicePhrase(page, 'Наличными');
 
-    const logs = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity()));
+    const logs = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getExecutionLogs());
     const matchA = logs.filter((l: any) => l.contextId === idA && l.event.payload.orderId === 1001 && l.event.payload.payment === 'card');
     const matchB = logs.filter((l: any) => l.contextId === idB && l.event.payload.orderId === 1002 && l.event.payload.payment === 'cash');
 
@@ -84,14 +83,14 @@ test.describe('E2E: PLATFORM-012 Production Voice Pipeline Integration Suite', (
     const ambRes = await emitVoicePhrase(page, 'Картой');
     expect(ambRes.status).toBe('AMBIGUOUS_CONTEXT');
 
-    let logs = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity()));
+    let logs = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getExecutionLogs());
     expect(logs.length).toBe(0);
 
     // Explicit entity clarification
     await emitVoicePhrase(page, 'Заказ 1002');
     await emitVoicePhrase(page, 'Картой');
 
-    logs = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity()));
+    logs = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getExecutionLogs());
     expect(logs.length).toBe(1);
     expect(logs[0].event.payload.orderId).toBe(1002);
   });
@@ -109,7 +108,7 @@ test.describe('E2E: PLATFORM-012 Production Voice Pipeline Integration Suite', (
     // Explicit cancel for 1002
     await emitVoicePhrase(page, 'Заказ 1002 отмена');
 
-    const contexts = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.listContexts((window as any).__VOICE_DEMO_APP__.getIdentity()));
+    const contexts = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.listContexts());
     const ctxB = contexts.find((c: any) => c.slots.orderId === 1002);
     const ctxA = contexts.find((c: any) => c.slots.orderId === 1001);
 
@@ -123,7 +122,7 @@ test.describe('E2E: PLATFORM-012 Production Voice Pipeline Integration Suite', (
     const res = await emitVoicePhrase(page, 'Неизвестная команда');
     expect(res.status).toBe('NO_MATCH');
 
-    const logs = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity()));
+    const logs = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getExecutionLogs());
     expect(logs.length).toBe(0);
   });
 
@@ -132,7 +131,7 @@ test.describe('E2E: PLATFORM-012 Production Voice Pipeline Integration Suite', (
 
     await emitVoicePhrase(page, 'Я приехал');
 
-    const logs = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity()));
+    const logs = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getExecutionLogs());
     expect(logs.length).toBe(1);
     expect(logs[0].event.type).toBe('driver.arrived');
   });

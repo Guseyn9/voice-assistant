@@ -1,8 +1,6 @@
-import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const scenarioPath = path.resolve(__dirname, '../../../scenario-sc-004-taxi-driver-dialogue.json');
 const rawContent = fs.readFileSync(scenarioPath, 'utf-8');
@@ -46,7 +44,7 @@ test.describe('CONTRACT: SC-004 Taxi Driver Multi-Turn Dialogue Suite (ТЗ-VOIC
   test('CONTRACT-06: Schema contains zero targetState and no artificial FSM hints', async () => {
     const jsonString = JSON.stringify(scenarioSet);
     expect(jsonString).not.toContain('targetState');
-    expect(jsonString).not.toContain('targetState');
+    expect(jsonString).not.toContain('ORDER_ACCEPTED');
   });
 
 });

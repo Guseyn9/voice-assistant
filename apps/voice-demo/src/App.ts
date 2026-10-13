@@ -1,4 +1,4 @@
-import type { SessionIdentity } from '../../../src/platform/dialogue-manager';
+import { SessionIdentity } from '../../../src/platform/dialogue-manager';
 
 export class VoiceDemoApp {
   public runtime: any;
@@ -41,23 +41,7 @@ export function mountApp(root: HTMLElement, runtime: any, authenticatedIdentity:
     root.innerHTML = `<div id="voice-app-ready" style="padding: 16px; font-family: sans-serif;">
       <h2>Voice Platform Production Runtime Ready</h2>
       <div id="runtime-identity">AUTHENTICATED: ${authenticatedIdentity.ownerId}:${authenticatedIdentity.sessionId}</div>
-      <label for="scenario-file">Load scenario JSON</label>
-      <input id="scenario-file" type="file" accept=".json,application/json" aria-label="Load scenario JSON" />
-      <div id="scenario-status" role="status"></div>
     </div>`;
-    const fileInput = root.querySelector<HTMLInputElement>('#scenario-file');
-    const scenarioStatus = root.querySelector<HTMLElement>('#scenario-status');
-    fileInput?.addEventListener('change', async () => {
-      const file = fileInput.files?.[0];
-      if (!file) return;
-      try {
-        const scenarioSet = JSON.parse(await file.text());
-        runtime.voiceChannel.registerScenarioSet(scenarioSet);
-        if (scenarioStatus) scenarioStatus.textContent = scenarioSet.name || scenarioSet.id || 'Scenario loaded';
-      } catch (error) {
-        if (scenarioStatus) scenarioStatus.textContent = error instanceof Error ? error.message : 'Invalid scenario JSON';
-      }
-    });
   }
   if (typeof window !== 'undefined') {
     (window as any).__VOICE_DEMO_APP__ = app;

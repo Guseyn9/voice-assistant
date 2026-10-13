@@ -11,8 +11,6 @@
         "type": "voice",
         "value": "voice.accept-order"
       },
-      "expectedPhrase": "Прими заказ",
-      "aliases": ["Принять заказ", "Принимаю заказ", "Беру заказ"],
       "intent": "ACCEPT_ORDER",
       "requiredSlots": ["orderId", "payment"],
       "slotExtractors": {
