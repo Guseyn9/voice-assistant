@@ -93,8 +93,5 @@ export const productionActionDispatcher: ActionDispatcher = async (event, ctx, e
   return platformExecutionBoundary.execute(event, exec);
 };
 
-// Start application with resolved authenticated session
-const sessionIdentity = getAuthenticatedSessionIdentity();
-const runtime = bootstrap(productionActionDispatcher);
-const root = document.querySelector<HTMLElement>("#app") || document.body;
-mountApp(root, runtime, sessionIdentity);
+// Application startup is owned by the root src/main.ts entrypoint.
+// Keep this module side-effect-free because its exports are imported by src/main.ts.
