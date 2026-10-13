@@ -8,7 +8,7 @@ on:
 
 jobs:
   test-and-verify:
-    name: Build & Contract Validation
+    name: Build & Runtime Contract Validation
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -26,7 +26,7 @@ jobs:
       - name: Install Playwright Browsers & Dependencies
         run: npx playwright install --with-deps chromium
       - name: Run Contract Tests
-        run: npx playwright test tests/contract
+        run: npx playwright test tests/contract/integration tests/contract/platform
       - name: Upload Test Report Artifact
         if: always()
         uses: actions/upload-artifact@v4
