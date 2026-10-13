@@ -1,8 +1,10 @@
+import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
 import { DialogueStateManager, type OfferDefinition } from '../../../src/platform/dialogue-manager';
 import { VoiceChannel } from '../../../src/platform/voice-channel';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 test.describe('CONTRACT: SC-PASS-002 Multi-Offer Dialogue & Selection Suite', () => {
 

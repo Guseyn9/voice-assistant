@@ -1,6 +1,8 @@
+import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const scenarioPath = path.resolve(__dirname, '../../../scenario-sc-010-taxi-driver-multi-context-lifecycle.json');
 const rawContent = fs.readFileSync(scenarioPath, 'utf-8');
