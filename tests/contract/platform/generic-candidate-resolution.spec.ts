@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'node:url';
 import { DialogueStateManager } from '../../../src/platform/dialogue-manager';
 import { VoiceChannel, type ScenarioSet } from '../../../src/platform/voice-channel';
 
@@ -124,7 +125,7 @@ test.describe('CONTRACT: SC-PLATFORM-003 Generic Candidate Resolution Portabilit
     ]
   };
 
-  beforeEach(() => {
+  test.beforeEach(() => {
     dispatcherCalls = 0;
     dm = new DialogueStateManager({
       actionDispatcher: async (event, ctx, exec) => {
@@ -293,7 +294,7 @@ test.describe('CONTRACT: SC-PLATFORM-003 Generic Candidate Resolution Portabilit
   });
 
   test('CANDIDATE-09: Архитектурный тест — в resolveCandidate отсутствуют доменные термины и семантика Taxi Offer', () => {
-    const vcPath = path.resolve(__dirname, '../../../src/platform/voice-channel.ts');
+    const vcPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../src/platform/voice-channel.ts');
     const vcContent = fs.readFileSync(vcPath, 'utf8');
 
     const funcMatch = vcContent.match(/resolveCandidate\([\s\S]*?\n\s{2}\}/);

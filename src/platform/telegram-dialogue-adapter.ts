@@ -80,18 +80,28 @@ export class TelegramDialogueAdapter {
     const activeCtxAfter = dm.getActiveState(identity);
     const newState = activeCtxAfter ? { ...activeCtxAfter.slots } : (res.slots || {});
 
+    const extractedSlots: Record<string, any> = {};
+    for (const [slotName, value] of Object.entries(newState)) {
+      if (prevState[slotName] !== value) {
+        extractedSlots[slotName] = value;
+      }
+    }
+
     this.lastInstrumentation = {
       channel: input.channel,
       raw_input: input.raw_input || null,
       transcript: input.transcript || null,
       intent: activeCtxAfter?.intent || activeScenario?.intent || null,
-      extracted_slots: {},
+      extracted_slots: extractedSlots,
       previous_state: prevState,
       new_state: newState,
       next_question: res.nextQuestion || null,
       confidence: 1.0
     };
 
-    return res;
+    // The Telegram-facing order contract retains its established terminal status.
+    return res.status === 'CONFIRMED' && (activeCtxAfter?.intent || activeScenario?.intent || activeCtxBefore?.intent) === 'ORDER_NANNY'
+      ? { ...res, status: 'ORDER_CONFIRMED' }
+      : res;
   }
 }

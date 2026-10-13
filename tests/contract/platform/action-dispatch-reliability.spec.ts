@@ -156,7 +156,7 @@ test.describe('CONTRACT: PLATFORM-015 Action Dispatch Reliability Suite', () => 
     const ex = dm.createExecution(ctx, sessionA);
     await dm.dispatchAction(ex.executionId, { orderId: 1001 }, sessionA);
 
-    const reconciled = dm.reconcileExecution(ex.executionId, 'SUCCEEDED', sessionA);
+    const reconciled = await dm.reconcileExecution(ex.executionId, 'SUCCEEDED', sessionA);
     expect(reconciled.status).toBe('SUCCEEDED');
     expect(dm.getContext(ctx.contextId, sessionA)?.status).toBe('COMPLETED');
   });
@@ -183,7 +183,7 @@ test.describe('CONTRACT: PLATFORM-015 Action Dispatch Reliability Suite', () => 
   test('CONTRACT-13: Execution cannot be created for terminal context states', async () => {
     const dm = new DialogueStateManager();
     const ctx = dm.createContext('ACCEPT_ORDER', { orderId: 1001 }, ['orderId'], 'order.accepted', {}, sessionA);
-    dm.cancelContext(ctx.contextId, sessionA);
+    await dm.cancelContext(ctx.contextId, sessionA);
 
     expect(() => {
       dm.createExecution(ctx, sessionA);

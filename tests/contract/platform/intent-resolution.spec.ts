@@ -367,7 +367,7 @@ test.describe('CONTRACT: PLATFORM-014 Intent Resolution & Slot Ambiguity Suite',
     }).toThrow(/CONTRACT_VIOLATION.*invalid priority/);
   });
 
-  test('CONTRACT-16: String extractor without pattern returns NO_MATCH', async () => {
+  test('CONTRACT-16: String extractor without pattern captures the supplied text', async () => {
     const dm = new DialogueStateManager();
     const channel = new VoiceChannel(dm);
 
@@ -376,7 +376,8 @@ test.describe('CONTRACT: PLATFORM-014 Intent Resolution & Slot Ambiguity Suite',
     };
 
     const res = channel.extractSlotsDeterministically('любой текст', extractors, 'sc-test');
-    expect(res.status).toBe('NO_MATCH');
+    expect(res.status).toBe('RESOLVED');
+    expect((res as any).slots.address).toBe('любой текст');
   });
 
   test('CONTRACT-17: Multiple scenarios with same intent deterministically pick highest priority scenario for prompt', async () => {

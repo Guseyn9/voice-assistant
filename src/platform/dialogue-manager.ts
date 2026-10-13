@@ -50,6 +50,7 @@ export interface ActionExecution {
   createdAt: number;
   updatedAt: number;
   errorCode?: string;
+  event?: { type: string; payload: Record<string, any> };
 }
 
 export type DispatchResult =
@@ -84,7 +85,7 @@ export type RoutingResult =
 
 export type MutationResult<T> =
   | { success: true; data: T; version: number }
-  | { success: false; error: 'CONTEXT_VERSION_CONFLICT' | 'TERMINAL_STATE' | 'CONTEXT_NOT_FOUND' | 'ACCESS_DENIED' | 'SYSTEM_EVENT_NOT_HANDLED' | 'MUTATION_REJECTED'; message: string };
+  | { success: false; error: 'CONTEXT_VERSION_CONFLICT' | 'TERMINAL_STATE' | 'CONTEXT_NOT_FOUND' | 'CONTEXT_ACCESS_DENIED' | 'SYSTEM_EVENT_NOT_HANDLED' | 'MUTATION_REJECTED'; message: string };
 
 export interface SystemEventDescriptor {
   type: string;
@@ -120,6 +121,10 @@ export class DialogueStateManager {
       this.enableAutoExpiryScheduler = configOrTimeout.enableAutoExpiryScheduler ?? true;
     }
     this.reset();
+  }
+
+  public hasActionDispatcher(): boolean {
+    return Boolean(this.actionDispatcher);
   }
 
   public setActionDispatcher(dispatcher: ActionDispatcher): void {
@@ -230,7 +235,7 @@ export class DialogueStateManager {
       }
 
       if (ctx.ownerId !== identity.ownerId || ctx.sessionId !== identity.sessionId) {
-        return { success: false as const, error: 'ACCESS_DENIED' as const, message: 'Cross-session context mutation is prohibited' };
+        return { success: false as const, error: 'CONTEXT_ACCESS_DENIED' as const, message: 'Cross-session context mutation is prohibited' };
       }
 
       // Optimistic CAS version check
@@ -261,6 +266,15 @@ export class DialogueStateManager {
       ctx.updatedAt = Date.now();
       if (outcome.targetStatus) {
         ctx.status = outcome.targetStatus;
+      }
+      if (['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(ctx.status)) {
+        if (this.timerMap.has(contextId)) {
+          clearTimeout(this.timerMap.get(contextId));
+          this.timerMap.delete(contextId);
+        }
+        if (this.activeContextId === contextId) {
+          this.activeContextId = null;
+        }
       }
 
       return {
@@ -296,6 +310,10 @@ export class DialogueStateManager {
       this.timerMap.delete(contextId);
     }, ttlMs);
 
+    // In Node-based test runners, expiry timers must not keep the process alive
+    // after the suite has completed. Browsers do not expose unref(), so this is
+    // a no-op there and leaves normal runtime expiry unchanged.
+    (timer as any).unref?.();
     this.timerMap.set(contextId, timer);
   }
 
@@ -393,21 +411,31 @@ export class DialogueStateManager {
     const text = phrase.toLowerCase();
     const tokens = text.split(/\s+/);
 
+    let foreignContextMatched = false;
     for (const ctx of this.contexts.values()) {
       if (ctx.status !== 'WAITING_FOR_SLOT') continue;
 
       for (const [slotKey, slotVal] of Object.entries(ctx.slots)) {
         if (slotVal === undefined || slotVal === null) continue;
         const valStr = String(slotVal).toLowerCase();
+        const numericSlotValue = /^-?\d+(?:\.\d+)?$/.test(valStr);
+        const valueMentioned = numericSlotValue
+          ? tokens.includes(valStr)
+          : tokens.includes(valStr) || text.includes(valStr);
 
-        if (tokens.includes(valStr) || text.includes(valStr)) {
+        if (valueMentioned) {
           if (ctx.ownerId !== identity.ownerId || ctx.sessionId !== identity.sessionId) {
-            return { status: 'CONTEXT_ACCESS_DENIED' };
+            foreignContextMatched = true;
+            continue;
           }
           this.activeContextId = ctx.contextId;
           return { status: 'RESOLVED', contextId: ctx.contextId };
         }
       }
+    }
+
+    if (foreignContextMatched) {
+      return { status: 'CONTEXT_ACCESS_DENIED' };
     }
 
     const candidates = Array.from(this.contexts.values()).filter(ctx => {
@@ -567,15 +595,25 @@ export class DialogueStateManager {
   public createExecution(
     ctx: DialogueContext,
     identity: SessionIdentity,
-    providedExecutionId?: string
+    providedExecutionId?: string,
+    payloadOverride?: Record<string, any>
   ): ActionExecution {
     this.validateIdentity(identity);
     if (ctx.ownerId !== identity.ownerId || ctx.sessionId !== identity.sessionId) {
       throw new Error('SECURITY_VIOLATION: Cannot create execution for foreign context');
     }
 
-    if (['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(ctx.status)) {
-      throw new Error(`CONTRACT_VIOLATION: Cannot create execution for terminal context (${ctx.status})`);
+    // The caller may hold a stale context snapshot. Authorize and validate the
+    // current stored state, not the snapshot, before creating an execution.
+    const authoritativeCtx = this.contexts.get(ctx.contextId);
+    if (!authoritativeCtx) {
+      throw new Error(`CONTRACT_VIOLATION: Cannot create execution for missing context "${ctx.contextId}"`);
+    }
+    if (authoritativeCtx.ownerId !== identity.ownerId || authoritativeCtx.sessionId !== identity.sessionId) {
+      throw new Error('SECURITY_VIOLATION: Cannot create execution for foreign context');
+    }
+    if (['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(authoritativeCtx.status)) {
+      throw new Error(`CONTRACT_VIOLATION: Cannot create execution for terminal context (${authoritativeCtx.status})`);
     }
 
     const executionId = providedExecutionId || `exec_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -584,8 +622,9 @@ export class DialogueStateManager {
       const existing = this.executions.get(executionId)!;
       const sameOwner = existing.ownerId === identity.ownerId && existing.sessionId === identity.sessionId;
       const sameCtx = existing.contextId === ctx.contextId;
-      const sameAction = existing.actionType === ctx.actionType;
-      const samePayload = JSON.stringify(existing.payload) === JSON.stringify(ctx.slots);
+      const sameAction = existing.actionType === authoritativeCtx.actionType;
+      const expectedPayload = { ...(payloadOverride || {}), ...authoritativeCtx.slots };
+      const samePayload = JSON.stringify(existing.payload) === JSON.stringify(expectedPayload);
 
       if (sameOwner && sameCtx && sameAction && samePayload) {
         return existing;
@@ -593,7 +632,7 @@ export class DialogueStateManager {
       throw new Error(`CONTRACT_VIOLATION: Cannot overwrite existing executionId "${executionId}" with different execution data`);
     }
 
-    const idempotencyKey = `idemp_${ctx.contextId}_${executionId}_${ctx.actionType}`;
+    const idempotencyKey = `idemp_${authoritativeCtx.contextId}_${executionId}_${authoritativeCtx.actionType}`;
     const now = Date.now();
 
     const execution: ActionExecution = {
@@ -601,11 +640,11 @@ export class DialogueStateManager {
       idempotencyKey,
       ownerId: identity.ownerId,
       sessionId: identity.sessionId,
-      contextId: ctx.contextId,
-      scenarioId: ctx.scenarioId || 'sc-default',
-      intent: ctx.intent,
-      actionType: ctx.actionType,
-      payload: { ...ctx.slots },
+      contextId: authoritativeCtx.contextId,
+      scenarioId: authoritativeCtx.scenarioId || 'sc-default',
+      intent: authoritativeCtx.intent,
+      actionType: authoritativeCtx.actionType,
+      payload: { ...(payloadOverride || {}), ...authoritativeCtx.slots },
       status: 'PENDING',
       attempt: 0,
       createdAt: now,
@@ -656,6 +695,21 @@ export class DialogueStateManager {
     const prevPromise = this.contextMutationQueues.get(contextId) || Promise.resolve();
 
     const dispatchPromise = prevPromise.then(async () => {
+      // Re-check after acquiring the per-context queue. Concurrent callers may
+      // have observed PENDING before the first dispatch completed.
+      if (execution.status === 'SUCCEEDED') {
+        return { status: 'SUCCEEDED', executionId: execution.executionId, attempt: execution.attempt } as DispatchResult;
+      }
+      if (execution.status === 'FAILED') {
+        throw new Error(`CONTRACT_VIOLATION: Cannot dispatch terminal FAILED execution "${executionId}". A new executionId must be created.`);
+      }
+      if (execution.status === 'UNKNOWN') {
+        throw new Error(`CONTRACT_VIOLATION: Execution "${executionId}" is in UNKNOWN state. Explicit reconciliation is required before retry.`);
+      }
+      if (execution.status === 'DISPATCHING') {
+        return { status: 'UNKNOWN', executionId: execution.executionId, errorCode: 'ALREADY_IN_PROGRESS', attempt: execution.attempt } as DispatchResult;
+      }
+
       const ctx = this.contexts.get(contextId);
       if (!ctx) {
         throw new Error(`CONTRACT_VIOLATION: Context "${contextId}" not found`);
@@ -721,6 +775,10 @@ export class DialogueStateManager {
           if (result.status === 'SUCCEEDED') {
             execution.status = 'SUCCEEDED';
             ctx.status = 'COMPLETED';
+            if (this.timerMap.has(contextId)) {
+              clearTimeout(this.timerMap.get(contextId));
+              this.timerMap.delete(contextId);
+            }
             ctx.version += 1;
             ctx.updatedAt = Date.now();
             return result;
@@ -780,7 +838,13 @@ export class DialogueStateManager {
     });
 
     this.contextMutationQueues.set(contextId, dispatchPromise);
-    return dispatchPromise;
+    return dispatchPromise.then(result => {
+      const current = this.contexts.get(contextId);
+      if (current && ['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(current.status) && this.activeContextId === contextId) {
+        this.activeContextId = null;
+      }
+      return result;
+    });
   }
 
   public async reconcileExecution(
@@ -832,6 +896,10 @@ export class DialogueStateManager {
     this.validateIdentity(identity);
     return Array.from(this.executions.values())
       .filter(l => l.ownerId === identity.ownerId && l.sessionId === identity.sessionId)
-      .map(l => ({ ...l, payload: { ...l.payload } }));
+      .map(l => ({
+        ...l,
+        payload: { ...l.payload },
+        event: { type: l.actionType, payload: { ...l.payload } }
+      }));
   }
 }

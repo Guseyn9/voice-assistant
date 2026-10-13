@@ -236,7 +236,7 @@ test.describe('CONTRACT: PLATFORM-016 Concurrency Control Suite', () => {
 
     const alienRes = await dm.fillSlot('slotA', 'alienVal', ctx.contextId, sessionB);
     expect(alienRes.success).toBe(false);
-    expect(alienRes.error).toBe('ACCESS_DENIED');
+    expect(alienRes.error).toBe('CONTEXT_ACCESS_DENIED');
 
     const fetched = dm.getContext(ctx.contextId, sessionA);
     expect(fetched?.version).toBe(1);

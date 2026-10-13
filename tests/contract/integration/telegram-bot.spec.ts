@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { fileURLToPath } from 'node:url';
 import * as fs from 'fs';
 import * as path from 'path';
 import { DialogueStateManager } from '../../../src/platform/dialogue-manager';
@@ -6,7 +7,7 @@ import { VoiceChannel, type ScenarioSet } from '../../../src/platform/voice-chan
 import { TelegramDialogueAdapter } from '../../../src/platform/telegram-dialogue-adapter';
 import { MockSTTProvider } from '../../../src/platform/stt-provider';
 import { TelegramVoiceTransport } from '../../../src/platform/telegram-voice-transport';
-import { MockTelegramFileProvider } from './telegram-voice.spec';
+import { MockTelegramFileProvider } from './helpers/telegram-helpers';
 import {
   TelegramBotAdapter,
   MockTelegramClient,
@@ -30,7 +31,7 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
   let nannyScenarioSet: ScenarioSet;
   let dispatcherCalls: number;
 
-  beforeEach(() => {
+  test.beforeEach(() => {
     dispatcherCalls = 0;
     dm = new DialogueStateManager({
       actionDispatcher: async (event, ctx, exec) => {
@@ -40,7 +41,7 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
     });
     vc = new VoiceChannel(dm);
 
-    const scenarioRaw = fs.readFileSync(path.resolve(__dirname, '../../../scenario-nanny-order.json'), 'utf8');
+    const scenarioRaw = fs.readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../scenario-nanny-order.json'), 'utf8');
     nannyScenarioSet = JSON.parse(scenarioRaw);
     vc.registerScenarioSet(nannyScenarioSet);
 
@@ -246,7 +247,7 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
       callback_query: { id: 'c-cancel', from: testUser, message: { chat: testChat }, data: botAdapter.encodeCallbackData('confirmation', 'REJECTED') }
     }, sc);
 
-    expect(dm.getActiveState(sessionUser)).toBeUndefined();
+    expect(dm.getActiveState(sessionUser)).toBeNull();
     expect(dispatcherCalls).toBe(0);
     expect(telegramClient.getLastMessage()?.text).toBe('Диалог отменён.');
   });
@@ -256,10 +257,10 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
 
     await botAdapter.handleUpdate({ message: { from: testUser, chat: testChat, text: 'завтра' } }, sc);
     const ctx = dm.getActiveState(sessionUser)!;
-    ctx.offers = [
+    expect(dm.setOffersForContext(ctx.contextId, [
       { id: 'xyz-17', name: 'Ирина', index: 1, status: 'AVAILABLE' },
       { id: 'xyz-42', name: 'Ольга', index: 2, status: 'AVAILABLE' }
-    ] as any;
+    ] as any, sessionUser)).toBe(true);
 
     await botAdapter.handleUpdate({ message: { from: testUser, chat: testChat, text: 'с трех' } }, sc);
 
@@ -429,13 +430,13 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
 
   // Architectural Static Checks (AT-01 .. AT-10)
   test('AT-01: telegram-bot-adapter.ts does NOT import DialogueStateManager directly', () => {
-    const filePath = path.resolve(__dirname, '../../../src/platform/telegram-bot-adapter.ts');
+    const filePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../src/platform/telegram-bot-adapter.ts');
     const content = fs.readFileSync(filePath, 'utf8');
     expect(content).not.toMatch(/import\s+.*DialogueStateManager.*from/);
   });
 
   test('AT-02: Telegram Bot Adapter contains no domain business logic (nanny, ORDER_NANNY, nanny-1)', () => {
-    const filePath = path.resolve(__dirname, '../../../src/platform/telegram-bot-adapter.ts');
+    const filePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../src/platform/telegram-bot-adapter.ts');
     const content = fs.readFileSync(filePath, 'utf8');
     expect(content).not.toContain('nanny');
     expect(content).not.toContain('ORDER_NANNY');
@@ -443,7 +444,7 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
   });
 
   test('AT-03: Telegram Bot Adapter does NOT call resolveCandidate, fillSlot, createExecution, dispatchAction directly', () => {
-    const filePath = path.resolve(__dirname, '../../../src/platform/telegram-bot-adapter.ts');
+    const filePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../src/platform/telegram-bot-adapter.ts');
     const content = fs.readFileSync(filePath, 'utf8');
     expect(content).not.toContain('.resolveCandidate(');
     expect(content).not.toContain('.fillSlot(');
@@ -484,7 +485,7 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
   });
 
   test('AT-06: telegram-bot-adapter.ts does NOT contain selected_nanny, confirmation, ORDER_CONFIRMED, CANCELLED, nanny', () => {
-    const filePath = path.resolve(__dirname, '../../../src/platform/telegram-bot-adapter.ts');
+    const filePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../src/platform/telegram-bot-adapter.ts');
     const content = fs.readFileSync(filePath, 'utf8');
 
     expect(content).not.toContain('selected_nanny');
@@ -495,7 +496,7 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
   });
 
   test('AT-07: telegram-bot-adapter.ts does NOT contain literal domain response texts', () => {
-    const filePath = path.resolve(__dirname, '../../../src/platform/telegram-bot-adapter.ts');
+    const filePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../src/platform/telegram-bot-adapter.ts');
     const content = fs.readFileSync(filePath, 'utf8');
 
     expect(content).not.toContain('Диалог отменён.');
@@ -503,7 +504,7 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
   });
 
   test('AT-08: telegram-bot-adapter.ts does NOT check result.status against domain statuses', () => {
-    const filePath = path.resolve(__dirname, '../../../src/platform/telegram-bot-adapter.ts');
+    const filePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../src/platform/telegram-bot-adapter.ts');
     const content = fs.readFileSync(filePath, 'utf8');
 
     expect(content).not.toContain("result.status === 'CANCELLED'");
@@ -511,14 +512,14 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
   });
 
   test('AT-09: telegram-bot-adapter.ts does NOT inspect specific missingSlots', () => {
-    const filePath = path.resolve(__dirname, '../../../src/platform/telegram-bot-adapter.ts');
+    const filePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../src/platform/telegram-bot-adapter.ts');
     const content = fs.readFileSync(filePath, 'utf8');
 
     expect(content).not.toContain('missingSlots');
   });
 
   test('AT-10: telegram-bot-adapter.ts does NOT hardcode callback for any specific slot', () => {
-    const filePath = path.resolve(__dirname, '../../../src/platform/telegram-bot-adapter.ts');
+    const filePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../src/platform/telegram-bot-adapter.ts');
     const content = fs.readFileSync(filePath, 'utf8');
 
     expect(content).not.toContain('dialogue:selected_nanny:');
