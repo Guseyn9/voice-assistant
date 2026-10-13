@@ -1,4 +1,4 @@
-import { SessionIdentity } from '../../../src/platform/dialogue-manager';
+import type { SessionIdentity } from '../../../src/platform/dialogue-manager';
 
 export class VoiceDemoApp {
   public runtime: any;
