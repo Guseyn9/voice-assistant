@@ -43,9 +43,12 @@ test.describe('CONTRACT: SC-007 Context Isolation Suite (ТЗ-VOICE-SC-007)', ()
   });
 
   test('CONTRACT-06: Zero hardcoded orderId (1001/1002) in specification structure', async () => {
-    const jsonString = JSON.stringify(scenarioSet);
-    expect(jsonString).not.toContain('1001');
-    expect(jsonString).not.toContain('1002');
+    const orderIds = scenarioSet.scenarios.flatMap((sc: any) => sc.steps)
+      .filter((step: any) => step.kind === 'emit')
+      .map((step: any) => step.event?.payload?.orderId)
+      .filter((value: unknown) => value !== undefined);
+    expect(orderIds.length).toBeGreaterThan(0);
+    expect(orderIds.every((value: unknown) => value === '{{slots.orderId}}')).toBe(true);
   });
 
 });
