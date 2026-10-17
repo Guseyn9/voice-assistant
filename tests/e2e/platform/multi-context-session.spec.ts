@@ -72,7 +72,7 @@ test.describe('E2E: PLATFORM-010 Multi-Context Session Manager Runtime Suite', (
     await emitVoicePhrase(page, 'Наличными');
 
     // 4. Assert execution correlation with exact contextId
-    const logs = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getExecutionLogs());
+    const logs = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity()));
     const match1001 = logs.filter((l: any) => l.contextId === idA);
     const match1002 = logs.filter((l: any) => l.contextId === idB);
 
@@ -162,7 +162,7 @@ test.describe('E2E: PLATFORM-010 Multi-Context Session Manager Runtime Suite', (
     await emitVoicePhrase(page, 'Заказ 1002');
     await emitVoicePhrase(page, 'Картой'); // Same payment slot on 1002
 
-    const logs = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getExecutionLogs());
+    const logs = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity()));
     const matchA = logs.filter((l: any) => l.contextId === idA);
     const matchB = logs.filter((l: any) => l.contextId === idB);
 
@@ -182,7 +182,7 @@ test.describe('E2E: PLATFORM-010 Multi-Context Session Manager Runtime Suite', (
     await emitVoicePhrase(page, 'Заказ 1002');
     await emitVoicePhrase(page, 'Наличными');
 
-    const logs = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getExecutionLogs());
+    const logs = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity()));
 
     const contaminated1001Cash = logs.filter((l: any) => l.event.payload.orderId === 1001 && l.event.payload.payment === 'cash');
     const contaminated1002Card = logs.filter((l: any) => l.event.payload.orderId === 1002 && l.event.payload.payment === 'card');

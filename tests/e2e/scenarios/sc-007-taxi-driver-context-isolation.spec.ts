@@ -38,7 +38,7 @@ test.describe('E2E: SC-007 Context Isolation & Cross-Contamination Protection Su
     expect(state.missingSlots).toEqual(['payment']);
 
     const matching1001 = await page.evaluate(() => {
-      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs();
+      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity());
       return logs.filter((l: any) => l.intent === 'ACCEPT_ORDER' && l.payload?.orderId === 1001);
     });
     expect(matching1001.length).toBe(0);
@@ -67,7 +67,7 @@ test.describe('E2E: SC-007 Context Isolation & Cross-Contamination Protection Su
 
     // Validate strictly 1 execution for 1002 + card
     const executions1002 = await page.evaluate(() => {
-      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs();
+      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity());
       return logs.filter((l: any) => l.intent === 'ACCEPT_ORDER' && l.payload?.orderId === 1002 && l.payload?.payment === 'card');
     });
     expect(executions1002.length).toBe(1);
@@ -75,7 +75,7 @@ test.describe('E2E: SC-007 Context Isolation & Cross-Contamination Protection Su
 
     // Validate strictly 0 executions for 1001 + card
     const executions1001 = await page.evaluate(() => {
-      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs();
+      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity());
       return logs.filter((l: any) => l.intent === 'ACCEPT_ORDER' && l.payload?.orderId === 1001);
     });
     expect(executions1001.length).toBe(0);
@@ -92,7 +92,7 @@ test.describe('E2E: SC-007 Context Isolation & Cross-Contamination Protection Su
     await emitVoicePhrase(page, 'Прими заказ 1002');
     await emitVoicePhrase(page, 'Картой');
 
-    const logs = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getExecutionLogs());
+    const logs = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity()));
 
     // Disallowed combinations
     const contaminated1001Card = logs.filter((l: any) => l.payload?.orderId === 1001 && l.payload?.payment === 'card');
@@ -113,11 +113,11 @@ test.describe('E2E: SC-007 Context Isolation & Cross-Contamination Protection Su
     await emitVoicePhrase(page, 'Картой');
 
     const total1002 = await page.evaluate(() => {
-      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs();
+      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity());
       return logs.filter((l: any) => l.payload?.orderId === 1002 && l.payload?.payment === 'card').length;
     });
     const total1001 = await page.evaluate(() => {
-      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs();
+      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity());
       return logs.filter((l: any) => l.payload?.orderId === 1001).length;
     });
 
@@ -134,11 +134,11 @@ test.describe('E2E: SC-007 Context Isolation & Cross-Contamination Protection Su
     await emitVoicePhrase(page, 'Наличными');
 
     const matching1002 = await page.evaluate(() => {
-      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs();
+      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity());
       return logs.filter((l: any) => l.payload?.orderId === 1002 && l.payload?.payment === 'cash').length;
     });
     const matching1001 = await page.evaluate(() => {
-      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs();
+      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity());
       return logs.filter((l: any) => l.payload?.orderId === 1001).length;
     });
 
@@ -155,7 +155,7 @@ test.describe('E2E: SC-007 Context Isolation & Cross-Contamination Protection Su
     await emitVoicePhrase(page, 'Картой');
 
     const executions1001 = await page.evaluate(() => {
-      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs();
+      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity());
       return logs.filter((l: any) => l.intent === 'ACCEPT_ORDER' && l.payload?.orderId === 1001).length;
     });
 
@@ -176,11 +176,11 @@ test.describe('E2E: SC-007 Context Isolation & Cross-Contamination Protection Su
     expect(state.slots).toEqual({ orderId: 1002, payment: 'card' });
 
     const executions1002 = await page.evaluate(() => {
-      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs();
+      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity());
       return logs.filter((l: any) => l.payload?.orderId === 1002 && l.payload?.payment === 'card').length;
     });
     const executions1001 = await page.evaluate(() => {
-      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs();
+      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity());
       return logs.filter((l: any) => l.payload?.orderId === 1001).length;
     });
 
@@ -202,7 +202,7 @@ test.describe('E2E: SC-007 Context Isolation & Cross-Contamination Protection Su
     await emitVoicePhrase(page, 'Прими заказ 1002 с оплатой картой');
 
     const count1002 = await page.evaluate(() => {
-      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs();
+      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity());
       return logs.filter((l: any) => l.intent === 'ACCEPT_ORDER' && l.payload?.orderId === 1002 && l.payload?.payment === 'card').length;
     });
 
