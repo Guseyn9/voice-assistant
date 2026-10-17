@@ -1,7 +1,8 @@
 import { test, expect } from '@playwright/test';
+import { fileURLToPath } from 'node:url';
 import * as path from 'path';
 
-const scenarioFilePath = path.resolve(__dirname, '../../../scenario-platform-011-ambiguous-context.json');
+const scenarioFilePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../scenario-platform-011-ambiguous-context.json');
 
 test.describe('E2E: PLATFORM-011 Ambiguous Input & Context Selection Suite', () => {
 

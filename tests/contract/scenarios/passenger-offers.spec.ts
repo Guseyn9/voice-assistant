@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { fileURLToPath } from 'node:url';
 import * as fs from 'fs';
 import * as path from 'path';
 import { DialogueStateManager, type OfferDefinition } from '../../../src/platform/dialogue-manager';
@@ -21,7 +22,7 @@ test.describe('CONTRACT: SC-PASS-002 Multi-Offer Dialogue & Selection Suite', ()
   ];
 
   test.beforeAll(() => {
-    const jsonPath = path.resolve(__dirname, '../../../scenario-passenger-offers.json');
+    const jsonPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../scenario-passenger-offers.json');
     scenarioSet = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
   });
 

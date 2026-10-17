@@ -1,7 +1,8 @@
 import { test, expect } from '@playwright/test';
+import { fileURLToPath } from 'node:url';
 import * as path from 'path';
 
-const scenarioFilePath = path.resolve(__dirname, '../../../scenario-sc-009-taxi-driver-dialogue-concurrency.json');
+const scenarioFilePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../scenario-sc-009-taxi-driver-dialogue-concurrency.json');
 
 test.describe('E2E: SC-009 Concurrent Multi-Context Regression Suite (ТЗ-VOICE-SC-009)', () => {
 

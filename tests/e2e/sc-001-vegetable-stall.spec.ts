@@ -1,8 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { fileURLToPath } from 'node:url';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const scenarioFilePath = path.resolve(__dirname, '../../scenario-sc-001-vegetable-stall.json');
+const scenarioFilePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../scenario-sc-001-vegetable-stall.json');
 const rawContent = fs.readFileSync(scenarioFilePath, 'utf-8');
 const scenarioSet = JSON.parse(rawContent);
 

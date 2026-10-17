@@ -7,7 +7,6 @@ on:
 
 jobs:
   test:
-    if: github.event_name != 'pull_request' || github.head_ref == 'work/voice-demo-ci'
     timeout-minutes: 30
     runs-on: ubuntu-latest
     steps:
@@ -18,8 +17,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps
-      - name: Run Playwright tests
+        run: npx playwright install --with-deps chromium
+      - name: Run full E2E suite
         run: npm run test:e2e
       - name: Upload Playwright report
         if: always()

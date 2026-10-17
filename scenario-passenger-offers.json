@@ -1,7 +1,161 @@
-"candidateBinding": {
-        "idField": "offerId",
-        "indexField": "index",
-        "statusField": "status",
-        "unavailableValue": "UNAVAILABLE",
-        "ambiguityTriggerValues": ["cheapest", "fastest"]
+{
+  "version": 4,
+  "id": "scenario-set-passenger-offers-002",
+  "name": "Passenger Multi-Offer Dialogue and Selection Scenario",
+  "description": "Декларативная спецификация диалога сравнения предложений, ответов на информационные вопросы и выбора оффера пассажиром",
+  "scenarios": [
+    {
+      "id": "sc-compare-eta",
+      "intent": "COMPARE_OFFERS_ETA",
+      "triggerPhrases": [
+        "кто приедет быстрее",
+        "какая машина ближе",
+        "самый быстрый вариант",
+        "кто быстрее",
+        "какой быстрее"
+      ],
+      "query": {
+        "attribute": "etaMinutes",
+        "mode": "min"
       },
+      "responseTemplate": "Быстрее всего {{index}}-й вариант — {{etaMinutes}} мин."
+    },
+    {
+      "id": "sc-compare-price",
+      "intent": "COMPARE_OFFERS_PRICE",
+      "triggerPhrases": [
+        "какой дешевле",
+        "самый дешёвый вариант",
+        "кто дешевле",
+        "какая машина дешевле",
+        "а какой дешевле"
+      ],
+      "query": {
+        "attribute": "price",
+        "mode": "min"
+      },
+      "responseTemplate": "Дешевле всего {{index}}-й вариант — {{price}} руб."
+    },
+    {
+      "id": "sc-query-comfort",
+      "intent": "QUERY_OFFER_COMFORT",
+      "triggerPhrases": [
+        "а второй это комфорт",
+        "второй это комфорт",
+        "второй комфорт",
+        "первый это комфорт",
+        "третий это комфорт"
+      ],
+      "slotExtractors": {
+        "targetOfferIndex": {
+          "type": "integer",
+          "rules": [
+            { "pattern": "\\bперв(ый|ого|ому|ом)\\b|\\b1\\b", "value": 1 },
+            { "pattern": "\\bвтор(ой|ого|ому|ом)\\b|\\b2\\b", "value": 2 },
+            { "pattern": "\\bтрет(ий|ьего|ьему|ьем)\\b|\\b3\\b", "value": 3 }
+          ]
+        }
+      },
+      "evaluation": {
+        "kind": "query_attribute",
+        "attribute": "vehicleType",
+        "responseTemplate": "{{index}}-й вариант — это {{vehicleType}}"
+      }
+    },
+    {
+      "id": "sc-query-distance",
+      "intent": "QUERY_OFFER_DISTANCE",
+      "triggerPhrases": [
+        "а далеко находится второй водитель",
+        "далеко находится второй водитель",
+        "где второй водитель",
+        "далеко второй"
+      ],
+      "slotExtractors": {
+        "targetOfferIndex": {
+          "type": "integer",
+          "rules": [
+            { "pattern": "\\bперв(ый|ого|ому|ом)\\b|\\b1\\b", "value": 1 },
+            { "pattern": "\\bвтор(ой|ого|ому|ом)\\b|\\b2\\b", "value": 2 },
+            { "pattern": "\\bтрет(ий|ьего|ьему|ьем)\\b|\\b3\\b", "value": 3 }
+          ]
+        }
+      },
+      "evaluation": {
+        "kind": "query_attribute",
+        "attribute": "distanceKm",
+        "responseTemplate": "Водитель находится в {{distanceMeters}} метрах"
+      }
+    },
+    {
+      "id": "sc-select-passenger-offer",
+      "intent": "SELECT_OFFER",
+      "triggerPhrases": [
+        "тогда давайте второй",
+        "выбираю второй вариант",
+        "поеду на втором",
+        "беру первый",
+        "давайте первый",
+        "тогда давайте третий",
+        "давайте третий",
+        "выбираю комфорт",
+        "поеду на комфорте",
+        "давайте машину подешевле",
+        "давайте машину побыстрее",
+        "нет, тогда первый",
+        "нет, лучше первый",
+        "нет, лучше второй",
+        "второй",
+        "третий",
+        "первый"
+      ],
+      "requiredSlots": ["selectedOfferId", "confirmation"],
+      "slotExtractors": {
+        "confirmation": {
+          "type": "enum",
+          "rules": [
+            { "pattern": "\\b(да|согласен|подтверждаю|верно)\\b", "value": "CONFIRMED" },
+            { "pattern": "\\b(нет|отмена|не надо|не хочу)\\b", "value": "REJECTED" }
+          ]
+        },
+        "targetOfferIndex": {
+          "type": "integer",
+          "rules": [
+            { "pattern": "\\bперв(ый|ого|ому|ом)\\b|\\b1\\b", "value": 1 },
+            { "pattern": "\\bвтор(ой|ого|ому|ом)\\b|\\b2\\b", "value": 2 },
+            { "pattern": "\\bтрет(ий|ьего|ьему|ьем)\\b|\\b3\\b", "value": 3 },
+            { "pattern": "\\bчетверт(ый|ого|ому|ом|ую)\\b|\\b4\\b", "value": 4 }
+          ]
+        },
+        "targetVehicleType": {
+          "type": "string",
+          "rules": [
+            { "pattern": "\\b(комфорт|комфорта|комфорте)\\b", "value": "comfort" },
+            { "pattern": "\\b(эконом|эконома|экономе|стандарт)\\b", "value": "standard" },
+            { "pattern": "\\b(бизнес|бизнеса|бизнесе)\\b", "value": "business" }
+          ]
+        },
+        "ambiguousSelectionCriteria": {
+          "type": "string",
+          "rules": [
+            { "pattern": "\\b(быстр(ый|ее)|ближ(е|айший))\\b", "value": "fastest" },
+            { "pattern": "\\b(дешев(ый|ле)|подешевле|экономн(ый|ее))\\b", "value": "cheapest" }
+          ]
+        }
+      },
+      "ambiguityPrompt": {
+        "template": "Выберите, пожалуйста, конкретный вариант: первый, второй или третий."
+      },
+      "steps": [
+        {
+          "kind": "emit",
+          "event": {
+            "type": "passenger.offer.selected",
+            "payload": {}
+          }
+        }
+      ],
+      "responseTemplate": "Вы выбрали {{index}}-й вариант ({{vehicleType}}). Подтверждаете?"
+    }
+  ]
+}
