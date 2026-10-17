@@ -141,10 +141,11 @@ test.describe('CONTRACT: SC-PASS-001 Passenger Order Multi-turn Dialogue Suite',
 
   test('CONTRACT-09: Cancel до confirmation → status CANCELLED, zero execution', async () => {
     await vc.handleIncomingVoice('мне нужно в аэропорт', sessionPassengerA);
+    const contextId = dm.getActiveContextId()!;
     await vc.handleIncomingVoice('отсюда', sessionPassengerA);
     await vc.handleIncomingVoice('отмена', sessionPassengerA);
 
-    const ctx = dm.getContext(dm.getActiveContextId()!, sessionPassengerA);
+    const ctx = dm.getContext(contextId, sessionPassengerA);
     expect(ctx?.status).toBe('CANCELLED');
     expect(dm.getExecutionLogs(sessionPassengerA).length).toBe(0);
     expect(dispatcherCalls).toBe(0);
@@ -189,7 +190,7 @@ test.describe('CONTRACT: SC-PASS-001 Passenger Order Multi-turn Dialogue Suite',
 
     const fillRes = await dm.fillSlot('pickup', 'home', contextIdA, sessionPassengerB);
     expect(fillRes.success).toBe(false);
-    expect(fillRes.error).toBe('ACCESS_DENIED');
+    expect(fillRes.error).toBe('CONTEXT_ACCESS_DENIED');
   });
 
   test('CONTRACT-13: NO_MATCH → zero execution', async () => {

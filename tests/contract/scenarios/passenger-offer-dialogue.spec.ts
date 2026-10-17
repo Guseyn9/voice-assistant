@@ -137,11 +137,11 @@ test.describe('CONTRACT: SC-PASS-003 Multi-Step Offer Selection & Correction Sui
 
     const foreignFill = await dm.fillSlot('selectedOfferId', 'OFFER-A', ctxIdA, sessionPassengerB);
     expect(foreignFill.success).toBe(false);
-    expect(foreignFill.error).toBe('ACCESS_DENIED');
+    expect(foreignFill.error).toBe('CONTEXT_ACCESS_DENIED');
 
     const foreignConfirm = await dm.fillSlot('confirmation', 'CONFIRMED', ctxIdA, sessionPassengerB);
     expect(foreignConfirm.success).toBe(false);
-    expect(foreignConfirm.error).toBe('ACCESS_DENIED');
+    expect(foreignConfirm.error).toBe('CONTEXT_ACCESS_DENIED');
   });
 
 });

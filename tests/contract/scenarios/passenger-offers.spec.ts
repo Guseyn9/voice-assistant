@@ -207,7 +207,7 @@ test.describe('CONTRACT: SC-PASS-002 Multi-Offer Dialogue & Selection Suite', ()
 
     const foreignAccess = await dm.fillSlot('selectedOfferId', 'OFFER-A', ctxIdA, sessionPassengerB);
     expect(foreignAccess.success).toBe(false);
-    expect(foreignAccess.error).toBe('ACCESS_DENIED');
+    expect(foreignAccess.error).toBe('CONTEXT_ACCESS_DENIED');
   });
 
   test('CONTRACT-17: Payload содержит строго один выбранный OfferId', async () => {
