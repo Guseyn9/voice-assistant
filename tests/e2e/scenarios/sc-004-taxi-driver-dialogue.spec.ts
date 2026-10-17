@@ -23,7 +23,7 @@ test.describe('E2E: SC-004 Taxi Driver Multi-Turn Dialogue & Real FSM Suite (Ð¢Ð
       if (!channel) {
         throw new Error('VoiceChannel production instance is not initialized on window.__VOICE_CHANNEL__');
       }
-      return channel.handleIncomingVoice(text);
+      return channel.handleIncomingVoice(text, (window as any).__VOICE_DEMO_APP__.getIdentity());
     }, phrase);
   }
 

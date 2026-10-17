@@ -27,7 +27,7 @@ test.describe('E2E: SC-010 Multi-Context Complete Lifecycle Suite (ТЗ-VOICE-SC
       if (!channel) {
         throw new Error('VoiceChannel production instance is not initialized on window.__VOICE_CHANNEL__');
       }
-      return channel.handleIncomingVoice(text);
+      return channel.handleIncomingVoice(text, (window as any).__VOICE_DEMO_APP__.getIdentity());
     }, phrase);
   }
 
