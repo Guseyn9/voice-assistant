@@ -13,6 +13,7 @@ test.describe('E2E: PLATFORM-012 Production Voice Pipeline Integration Suite', (
 
     const fileInput = page.locator('input[type="file"]').first();
     await fileInput.setInputFiles(scenarioFilePath);
+    await page.evaluate(async () => { await (window as any).__SCENARIO_LOAD_PROMISE__; });
 
     const activeSetId = await page.evaluate(() => {
       return (window as any).__SCENARIO_ENGINE__.getActiveScenarioSetId();

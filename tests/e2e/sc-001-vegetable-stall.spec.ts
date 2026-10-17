@@ -135,6 +135,7 @@ test.describe('SC-001: Live Application Runtime Execution E2E (External JSON & S
     // 3. Upload the exact external scenario JSON file
     const fileInput = page.locator('[data-testid="scenario-file-input"]').or(page.locator('input[type="file"]')).first();
     await fileInput.setInputFiles(scenarioFilePath);
+    await page.evaluate(async () => { await (window as any).__SCENARIO_LOAD_PROMISE__; });
 
     // 4. Verify External File is active and confirmed in UI
     const fileNameDisplay = page.locator('[data-testid="scenario-file-name"]').or(page.locator('text=scenario-sc-001-vegetable-stall.json')).first();

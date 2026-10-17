@@ -20,6 +20,7 @@ test.describe('SC-002: Taxi Driver Standard Trip - Runtime E2E Suite', () => {
     // 2. Upload SC-002 JSON
     const fileInput = page.locator('[data-testid="scenario-file-input"]').or(page.locator('input[type="file"]')).first();
     await fileInput.setInputFiles(scenarioFilePath);
+    await page.evaluate(async () => { await (window as any).__SCENARIO_LOAD_PROMISE__; });
 
     // 3. Verify filename and ScenarioSet ID in UI
     await expect(page.locator('text=scenario-sc-002-taxi-driver.json').or(page.locator('text=Taxi Driver Standard Trip')).first()).toBeVisible({ timeout: 5000 });

@@ -17,6 +17,7 @@ test.describe('E2E: SC-PASS-002 Canonical Multi-Offer Dialogue Suite', () => {
 
     const fileInput = page.locator('input[type="file"]').first();
     await fileInput.setInputFiles(scenarioFilePath);
+    await page.evaluate(async () => { await (window as any).__SCENARIO_LOAD_PROMISE__; });
 
     const result = await page.evaluate(async () => {
       const vc = (window as any).__VOICE_CHANNEL__;

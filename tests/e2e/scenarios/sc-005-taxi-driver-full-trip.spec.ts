@@ -13,6 +13,7 @@ test.describe('E2E: SC-005 Taxi Driver Full Trip Workflow & Real FSM Suite (ТЗ
 
     const fileInput = page.locator('input[type="file"]').first();
     await fileInput.setInputFiles(scenarioFilePath);
+    await page.evaluate(async () => { await (window as any).__SCENARIO_LOAD_PROMISE__; });
     await expect(page.locator('body')).toContainText('Taxi Driver Full Trip');
   }
 

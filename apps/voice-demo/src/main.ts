@@ -14,76 +14,99 @@ export function getAuthenticatedSessionIdentity(): SessionIdentity {
   return { ownerId, sessionId };
 }
 
-// Real FSM / State Execution Engine Boundary
+// Runtime boundary for the driver's order lifecycle.
 export class PlatformFsmExecutionBoundary {
   private activeOrders: Map<number, { status: string; executionId: string; updatedAt: number }> = new Map();
+  private currentOrderId: number | null = null;
+  private driverStatus = 'AVAILABLE';
+
+  private publishStatus(status: string) {
+    this.driverStatus = status;
+    if (typeof window !== 'undefined') {
+      (window as any).__UPDATE_FSM_STATUS__?.(status);
+    }
+  }
+
+  private publishEvent(event: { type: string; payload: Record<string, any> }, result?: any) {
+    if (typeof window !== 'undefined') {
+      (window as any).__APPEND_TRACE__?.(event, result);
+    }
+  }
 
   public async execute(event: { type: string; payload: Record<string, any> }, exec: any) {
-    // 1. Strict Payload Validation
     if (!event || typeof event !== 'object' || !event.type || typeof event.type !== 'string') {
-      return {
-        status: 'FAILED' as const,
-        executionId: exec.executionId,
-        errorCode: 'INVALID_EVENT_FORMAT',
-        attempt: exec.attempt
-      };
+      return { status: 'FAILED' as const, executionId: exec.executionId, errorCode: 'INVALID_EVENT_FORMAT', attempt: exec.attempt };
     }
-
     if (!event.payload || typeof event.payload !== 'object' || Array.isArray(event.payload)) {
-      return {
-        status: 'FAILED' as const,
-        executionId: exec.executionId,
-        errorCode: 'INVALID_PAYLOAD_STRUCTURE',
-        attempt: exec.attempt
-      };
+      return { status: 'FAILED' as const, executionId: exec.executionId, errorCode: 'INVALID_PAYLOAD_STRUCTURE', attempt: exec.attempt };
     }
-
-    // Invariant: Event payload must match execution payload immutably
     if (JSON.stringify(event.payload) !== JSON.stringify(exec.payload)) {
-      return {
-        status: 'FAILED' as const,
-        executionId: exec.executionId,
-        errorCode: 'PAYLOAD_MUTATION_DETECTED',
-        attempt: exec.attempt
-      };
+      return { status: 'FAILED' as const, executionId: exec.executionId, errorCode: 'PAYLOAD_MUTATION_DETECTED', attempt: exec.attempt };
     }
 
-    // 2. Business Logic Execution via FSM
+    // Preserve the generic order-dispatch contract used by existing callers.
     if (event.type === 'order.accepted' || event.type === 'order.dispatch.completed') {
       const orderId = Number(event.payload.orderId);
       if (!Number.isFinite(orderId) || orderId <= 0) {
-        return {
-          status: 'FAILED' as const,
-          executionId: exec.executionId,
-          errorCode: 'INVALID_ORDER_ID',
-          attempt: exec.attempt
-        };
+        return { status: 'FAILED' as const, executionId: exec.executionId, errorCode: 'INVALID_ORDER_ID', attempt: exec.attempt };
       }
+      this.activeOrders.set(orderId, { status: 'DISPATCHED', executionId: exec.executionId, updatedAt: Date.now() });
+      this.currentOrderId = orderId;
+      this.publishStatus('DISPATCHED');
+      this.publishEvent(event);
+      return { status: 'SUCCEEDED' as const, executionId: exec.executionId, attempt: exec.attempt };
+    }
 
-      // Transition order state in FSM
-      this.activeOrders.set(orderId, {
-        status: 'DISPATCHED',
-        executionId: exec.executionId,
-        updatedAt: Date.now()
-      });
+    const orderIdFromPayload = event.payload.orderId === undefined ? undefined : Number(event.payload.orderId);
+    const orderId = Number.isFinite(orderIdFromPayload) && Number(orderIdFromPayload) > 0
+      ? Number(orderIdFromPayload)
+      : this.currentOrderId;
+    const currentStatus = orderId ? (this.activeOrders.get(orderId)?.status || this.driverStatus) : this.driverStatus;
 
+    const transitions: Record<string, { from: string[]; to: string; requiresOrder: boolean }> = {
+      'driver.order.accepted': { from: ['AVAILABLE', 'TRIP_FINISHED', 'DISPATCHED'], to: 'ORDER_ACCEPTED', requiresOrder: true },
+      'driver.arrived': { from: ['ORDER_ACCEPTED'], to: 'DRIVER_ARRIVED', requiresOrder: true },
+      'driver.trip.started': { from: ['DRIVER_ARRIVED'], to: 'IN_TRIP', requiresOrder: true },
+      'driver.trip.finished': { from: ['IN_TRIP'], to: 'TRIP_FINISHED', requiresOrder: true },
+      'driver.available': { from: ['TRIP_FINISHED'], to: 'AVAILABLE', requiresOrder: false }
+    };
+    const transition = transitions[event.type];
+    if (!transition) {
       return {
-        status: 'SUCCEEDED' as const,
+        status: 'FAILED' as const,
         executionId: exec.executionId,
+        errorCode: `UNKNOWN_ACTION_TYPE_${event.type}`,
+        attempt: exec.attempt
+      };
+    }
+    if (transition.requiresOrder && (!orderId || !Number.isFinite(orderId) || orderId <= 0)) {
+      return { status: 'FAILED' as const, executionId: exec.executionId, errorCode: 'INVALID_ORDER_ID', attempt: exec.attempt };
+    }
+    if (!transition.from.includes(currentStatus)) {
+      return {
+        status: 'FAILED' as const,
+        executionId: exec.executionId,
+        errorCode: 'INVALID_FSM_TRANSITION',
+        message: `Cannot transition from ${currentStatus} via ${event.type}`,
         attempt: exec.attempt
       };
     }
 
-    return {
-      status: 'FAILED' as const,
-      executionId: exec.executionId,
-      errorCode: `UNKNOWN_ACTION_TYPE_${event.type}`,
-      attempt: exec.attempt
-    };
+    if (orderId) {
+      this.activeOrders.set(orderId, { status: transition.to, executionId: exec.executionId, updatedAt: Date.now() });
+      this.currentOrderId = orderId;
+    }
+    this.publishStatus(transition.to);
+    this.publishEvent(event);
+    return { status: 'SUCCEEDED' as const, executionId: exec.executionId, attempt: exec.attempt };
   }
 
   public getOrderState(orderId: number) {
     return this.activeOrders.get(orderId);
+  }
+
+  public getDriverStatus() {
+    return this.driverStatus;
   }
 }
 

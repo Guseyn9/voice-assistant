@@ -17,6 +17,7 @@ test.describe('E2E: PLATFORM-016 Concurrency Control Suite', () => {
 
     const fileInput = page.locator('input[type="file"]').first();
     await fileInput.setInputFiles(scenarioFilePath);
+    await page.evaluate(async () => { await (window as any).__SCENARIO_LOAD_PROMISE__; });
   }
 
   test('E2E-RACE-01: Voice x Declarative System Event race deterministically serializes', async ({ page }) => {

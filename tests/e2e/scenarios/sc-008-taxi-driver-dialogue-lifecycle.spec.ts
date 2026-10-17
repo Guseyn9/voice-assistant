@@ -13,6 +13,7 @@ test.describe('E2E: SC-008 Dialogue Lifecycle, Cancellation & Recovery Suite (Т
 
     const fileInput = page.locator('input[type="file"]').first();
     await fileInput.setInputFiles(scenarioFilePath);
+    await page.evaluate(async () => { await (window as any).__SCENARIO_LOAD_PROMISE__; });
     
     // Strict active ScenarioSet ID verification without fallback
     const activeSetId = await page.evaluate(() => {

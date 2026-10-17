@@ -13,6 +13,7 @@ test.describe('E2E: SC-006 Multi-Slot Dialogue & Real Taxi FSM Suite (ТЗ-VOICE
 
     const fileInput = page.locator('input[type="file"]').first();
     await fileInput.setInputFiles(scenarioFilePath);
+    await page.evaluate(async () => { await (window as any).__SCENARIO_LOAD_PROMISE__; });
   }
 
   async function emitVoicePhrase(page: any, phrase: string) {
