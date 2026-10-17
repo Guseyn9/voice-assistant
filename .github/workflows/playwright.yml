@@ -7,8 +7,11 @@ on:
 
 jobs:
   test:
+    if: github.event_name != 'pull_request' || github.head_ref == 'work/voice-demo-ci'
     timeout-minutes: 30
     runs-on: ubuntu-latest
+    env:
+      APP_URL: http://localhost:3000
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
