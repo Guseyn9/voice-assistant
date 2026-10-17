@@ -33,7 +33,7 @@ test.describe('E2E: SC-004 Taxi Driver Multi-Turn Dialogue & Real FSM Suite (Ð¢Ð
 
     const state = await page.evaluate(() => {
       const dm = (window as any).__DIALOGUE_MANAGER__;
-      return dm ? dm.getActiveState() : null;
+      return dm ? dm.getActiveState((window as any).__VOICE_DEMO_APP__.getIdentity()) : null;
     });
 
     expect(state).not.toBeNull();
@@ -57,7 +57,7 @@ test.describe('E2E: SC-004 Taxi Driver Multi-Turn Dialogue & Real FSM Suite (Ð¢Ð
     // 3. Dialogue State COMPLETED
     const state = await page.evaluate(() => {
       const dm = (window as any).__DIALOGUE_MANAGER__;
-      return dm ? dm.getActiveState() : null;
+      return dm ? dm.getActiveState((window as any).__VOICE_DEMO_APP__.getIdentity()) : null;
     });
     expect(state.status).toBe('COMPLETED');
     expect(state.slots).toEqual({ orderId: 1001 });
@@ -82,7 +82,7 @@ test.describe('E2E: SC-004 Taxi Driver Multi-Turn Dialogue & Real FSM Suite (Ð¢Ð
 
     const state = await page.evaluate(() => {
       const dm = (window as any).__DIALOGUE_MANAGER__;
-      return dm ? dm.getActiveState() : null;
+      return dm ? dm.getActiveState((window as any).__VOICE_DEMO_APP__.getIdentity()) : null;
     });
 
     expect(state.status).toBe('WAITING_FOR_SLOT');
@@ -103,7 +103,7 @@ test.describe('E2E: SC-004 Taxi Driver Multi-Turn Dialogue & Real FSM Suite (Ð¢Ð
 
     const state = await page.evaluate(() => {
       const dm = (window as any).__DIALOGUE_MANAGER__;
-      return dm ? dm.getActiveState() : null;
+      return dm ? dm.getActiveState((window as any).__VOICE_DEMO_APP__.getIdentity()) : null;
     });
 
     expect(state.status).toBe('CANCELLED');
@@ -126,7 +126,7 @@ test.describe('E2E: SC-004 Taxi Driver Multi-Turn Dialogue & Real FSM Suite (Ð¢Ð
 
     const state = await page.evaluate(() => {
       const dm = (window as any).__DIALOGUE_MANAGER__;
-      return dm ? dm.getActiveState() : null;
+      return dm ? dm.getActiveState((window as any).__VOICE_DEMO_APP__.getIdentity()) : null;
     });
 
     expect(state.intent).toBe('DRIVER_ARRIVED');

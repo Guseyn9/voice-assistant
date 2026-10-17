@@ -38,7 +38,7 @@ test.describe('E2E: PLATFORM-011 Ambiguous Input & Context Selection Suite', () 
     await emitVoicePhrase(page, 'Прими заказ 1001');
     await emitVoicePhrase(page, 'Прими заказ 1002');
 
-    const contexts = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.listContexts());
+    const contexts = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.listContexts((window as any).__VOICE_DEMO_APP__.getIdentity()));
     expect(contexts.length).toBe(2);
     const idA = contexts.find((c: any) => c.slots.orderId === 1001).contextId;
     const idB = contexts.find((c: any) => c.slots.orderId === 1002).contextId;
@@ -72,7 +72,7 @@ test.describe('E2E: PLATFORM-011 Ambiguous Input & Context Selection Suite', () 
     expect(logs[0].event.payload.payment).toBe('card');
 
     // Verify 1001 remains in WAITING_FOR_SLOT with 0 executions
-    const ctxA = await page.evaluate((id: string) => (window as any).__DIALOGUE_MANAGER__.getContext(id), idA);
+    const ctxA = await page.evaluate((id: string) => (window as any).__DIALOGUE_MANAGER__.getContext(id, (window as any).__VOICE_DEMO_APP__.getIdentity()), idA);
     expect(ctxA.status).toBe('WAITING_FOR_SLOT');
   });
 
@@ -82,7 +82,7 @@ test.describe('E2E: PLATFORM-011 Ambiguous Input & Context Selection Suite', () 
     await emitVoicePhrase(page, 'Прими заказ 1001');
     await emitVoicePhrase(page, 'Прими заказ 1002');
 
-    const contexts = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.listContexts());
+    const contexts = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.listContexts((window as any).__VOICE_DEMO_APP__.getIdentity()));
     const idA = contexts.find((c: any) => c.slots.orderId === 1001).contextId;
 
     // Set activeContext to 1001
@@ -104,7 +104,7 @@ test.describe('E2E: PLATFORM-011 Ambiguous Input & Context Selection Suite', () 
     await emitVoicePhrase(page, 'Прими заказ 1001');
     await emitVoicePhrase(page, 'Прими заказ 1002');
 
-    const contexts = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.listContexts());
+    const contexts = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.listContexts((window as any).__VOICE_DEMO_APP__.getIdentity()));
     const idA = contexts.find((c: any) => c.slots.orderId === 1001).contextId;
     const idB = contexts.find((c: any) => c.slots.orderId === 1002).contextId;
 
@@ -143,7 +143,7 @@ test.describe('E2E: PLATFORM-011 Ambiguous Input & Context Selection Suite', () 
     await emitVoicePhrase(page, 'Прими заказ 1001');
     await emitVoicePhrase(page, 'Прими заказ 1002');
 
-    const contexts = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.listContexts());
+    const contexts = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.listContexts((window as any).__VOICE_DEMO_APP__.getIdentity()));
     const idA = contexts.find((c: any) => c.slots.orderId === 1001).contextId;
     const idB = contexts.find((c: any) => c.slots.orderId === 1002).contextId;
 
@@ -154,14 +154,14 @@ test.describe('E2E: PLATFORM-011 Ambiguous Input & Context Selection Suite', () 
     expect(cancelAmbRes.candidateContextIds).toContain(idB);
 
     // Verify 0 contexts cancelled
-    let activeWaiting = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.listContexts().filter((c: any) => c.status === 'WAITING_FOR_SLOT'));
+    let activeWaiting = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.listContexts((window as any).__VOICE_DEMO_APP__.getIdentity()).filter((c: any) => c.status === 'WAITING_FOR_SLOT'));
     expect(activeWaiting.length).toBe(2);
 
     // 3. Explicit cancellation of 1002
     await emitVoicePhrase(page, 'Заказ 1002 отмена');
 
-    const ctxB = await page.evaluate((id: string) => (window as any).__DIALOGUE_MANAGER__.getContext(id), idB);
-    const ctxA = await page.evaluate((id: string) => (window as any).__DIALOGUE_MANAGER__.getContext(id), idA);
+    const ctxB = await page.evaluate((id: string) => (window as any).__DIALOGUE_MANAGER__.getContext(id, (window as any).__VOICE_DEMO_APP__.getIdentity()), idB);
+    const ctxA = await page.evaluate((id: string) => (window as any).__DIALOGUE_MANAGER__.getContext(id, (window as any).__VOICE_DEMO_APP__.getIdentity()), idA);
 
     expect(ctxB.status).toBe('CANCELLED');
     expect(ctxA.status).toBe('WAITING_FOR_SLOT');

@@ -37,7 +37,7 @@ test.describe('E2E: PLATFORM-012 Production Voice Pipeline Integration Suite', (
     // 1. Voice input -> createContext
     await emitVoicePhrase(page, 'Прими заказ 1001');
 
-    const contexts = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.listContexts());
+    const contexts = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.listContexts((window as any).__VOICE_DEMO_APP__.getIdentity()));
     expect(contexts.length).toBe(1);
     expect(contexts[0].status).toBe('WAITING_FOR_SLOT');
     expect(contexts[0].slots.orderId).toBe(1001);
@@ -57,7 +57,7 @@ test.describe('E2E: PLATFORM-012 Production Voice Pipeline Integration Suite', (
     await emitVoicePhrase(page, 'Прими заказ 1001');
     await emitVoicePhrase(page, 'Прими заказ 1002');
 
-    const contexts = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.listContexts());
+    const contexts = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.listContexts((window as any).__VOICE_DEMO_APP__.getIdentity()));
     const idA = contexts.find((c: any) => c.slots.orderId === 1001).contextId;
     const idB = contexts.find((c: any) => c.slots.orderId === 1002).contextId;
 
@@ -110,7 +110,7 @@ test.describe('E2E: PLATFORM-012 Production Voice Pipeline Integration Suite', (
     // Explicit cancel for 1002
     await emitVoicePhrase(page, 'Заказ 1002 отмена');
 
-    const contexts = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.listContexts());
+    const contexts = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.listContexts((window as any).__VOICE_DEMO_APP__.getIdentity()));
     const ctxB = contexts.find((c: any) => c.slots.orderId === 1002);
     const ctxA = contexts.find((c: any) => c.slots.orderId === 1001);
 

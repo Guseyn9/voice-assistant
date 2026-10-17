@@ -37,7 +37,7 @@ test.describe('E2E: SC-009 Concurrent Multi-Context Regression Suite (ТЗ-VOICE
     await emitVoicePhrase(page, 'Прими заказ 1001');
     await emitVoicePhrase(page, 'Прими заказ 1002');
 
-    const contexts = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.listContexts());
+    const contexts = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.listContexts((window as any).__VOICE_DEMO_APP__.getIdentity()));
     expect(contexts.length).toBe(2);
 
     const ctxA = contexts.find((c: any) => c.slots.orderId === 1001);
@@ -55,7 +55,7 @@ test.describe('E2E: SC-009 Concurrent Multi-Context Regression Suite (ТЗ-VOICE
     await emitVoicePhrase(page, 'Прими заказ 1001');
     await emitVoicePhrase(page, 'Прими заказ 1002');
 
-    const contexts = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.listContexts());
+    const contexts = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.listContexts((window as any).__VOICE_DEMO_APP__.getIdentity()));
     const idA = contexts.find((c: any) => c.slots.orderId === 1001).contextId;
     const idB = contexts.find((c: any) => c.slots.orderId === 1002).contextId;
 

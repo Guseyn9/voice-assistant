@@ -84,24 +84,24 @@ test.describe('SC-001: Scenario JSON Contract & Schema Validation', () => {
   });
 
   test('CONTRACT-06: Step 5 Schema - CREATE_NEW_CATALOG_ITEM', async () => {
-    const stepInput = scenarioSet.scenarios[0].steps[11];
+    const stepInput = scenarioSet.scenarios[0].steps[12];
     expect(stepInput.kind).toBe('emit');
     expect(stepInput.event.type).toBe('VOICE_INPUT_RECEIVED');
     expect(stepInput.event.payload.action).toBe('CREATE_NEW_CATALOG_ITEM');
 
-    const stepOutput = scenarioSet.scenarios[0].steps[12];
+    const stepOutput = scenarioSet.scenarios[0].steps[13];
     expect(stepOutput.kind).toBe('emit');
     expect(stepOutput.event.type).toBe('CATALOG_ITEM_CREATED');
     expect(stepOutput.event.payload.itemName).toBe('Клубника');
   });
 
   test('CONTRACT-07: Step 6 Schema - SET_INVENTORY_STOCK_LEVEL', async () => {
-    const stepInput = scenarioSet.scenarios[0].steps[13];
+    const stepInput = scenarioSet.scenarios[0].steps[15];
     expect(stepInput.kind).toBe('emit');
     expect(stepInput.event.type).toBe('VOICE_INPUT_RECEIVED');
     expect(stepInput.event.payload.action).toBe('SET_INVENTORY_STOCK_LEVEL');
 
-    const stepOutput = scenarioSet.scenarios[0].steps[14];
+    const stepOutput = scenarioSet.scenarios[0].steps[16];
     expect(stepOutput.kind).toBe('emit');
     expect(stepOutput.event.type).toBe('INVENTORY_STOCK_UPDATED');
     expect(stepOutput.event.payload.quantity).toBe(10.0);

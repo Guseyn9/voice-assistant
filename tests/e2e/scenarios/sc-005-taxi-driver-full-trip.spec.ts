@@ -33,7 +33,7 @@ test.describe('E2E: SC-005 Taxi Driver Full Trip Workflow & Real FSM Suite (ТЗ
 
     // 1. Incomplete "Прими заказ" -> WAITING_FOR_SLOT
     await emitVoicePhrase(page, 'Прими заказ');
-    const state = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getActiveState());
+    const state = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getActiveState((window as any).__VOICE_DEMO_APP__.getIdentity()));
     expect(state.status).toBe('WAITING_FOR_SLOT');
     expect(state.clarificationPrompt).toBe('Какой заказ?');
 
