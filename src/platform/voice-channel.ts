@@ -896,6 +896,19 @@ export class VoiceChannel {
             || activeCtx.missingSlots.includes('confirmation');
 
           if (updatedCtxState && currentCtx && currentCtx.missingSlots.length === 0 && !requiresConfirmation) {
+            // Cancellation/expiry may win after fillSlot commits but before this
+            // continuation dispatches. Treat that as a normal serialized race outcome;
+            // never attempt to create an execution for a terminal context.
+            if (['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(currentCtx.status)) {
+              return {
+                status: currentCtx.status,
+                contextId: currentCtx.contextId,
+                intent: currentCtx.intent,
+                slots: currentCtx.slots,
+                context: currentCtx
+              };
+            }
+
             if (!this.dialogueManager.hasActionDispatcher()) {
               await this.dialogueManager.handleSystemEvent(
                 currentCtx.contextId,
