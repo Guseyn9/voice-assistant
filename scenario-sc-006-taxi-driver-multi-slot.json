@@ -63,6 +63,35 @@
           "priority": 100
         }
       }
+    },
+    {
+      "id": "sc006-driver-arrived",
+      "name": "Прибытие к пассажиру",
+      "activation": {
+        "type": "voice",
+        "value": "voice.arrived"
+      },
+      "expectedPhrase": "Я приехал",
+      "aliases": [
+        "прибыл",
+        "на месте"
+      ],
+      "intent": "DRIVER_ARRIVED",
+      "requiredSlots": [],
+      "steps": [
+        {
+          "kind": "emit",
+          "event": {
+            "type": "driver.arrived",
+            "payload": {
+              "orderId": 1001
+            }
+          }
+        },
+        {
+          "kind": "end"
+        }
+      ]
     }
   ]
 }
