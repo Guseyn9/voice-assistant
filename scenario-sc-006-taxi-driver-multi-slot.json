@@ -83,9 +83,7 @@
           "kind": "emit",
           "event": {
             "type": "driver.arrived",
-            "payload": {
-              "orderId": 1001
-            }
+            "payload": {}
           }
         },
         {
