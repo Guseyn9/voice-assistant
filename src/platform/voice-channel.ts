@@ -783,23 +783,26 @@ export class VoiceChannel {
           } else {
             const normalize = (value: string) =>
               value.replace(/^voice\./i, '').replace(/[-_]/g, ' ').toLowerCase().trim().replace(/\s+/g, ' ');
+            const nextScenario = intentRes.status === 'RESOLVED' ? intentRes.scenario : undefined;
             const triggers = [
-              scenario?.activation?.value,
-              scenario?.expectedPhrase,
-              ...(scenario?.triggerPhrases || []),
-              ...(scenario?.aliases || [])
+              nextScenario?.activation?.value,
+              nextScenario?.expectedPhrase,
+              ...(nextScenario?.triggerPhrases || []),
+              ...(nextScenario?.aliases || [])
             ].filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
             const isExplicitActivation = triggers.some(trigger => {
               const normalizedTrigger = normalize(trigger);
               const normalizedText = normalize(text);
               return normalizedText === normalizedTrigger || normalizedText.startsWith(`${normalizedTrigger} `);
             });
-            const explicitlyStartsDifferentEntity = isExplicitActivation &&
-              extracted.status === 'RESOLVED' &&
-              Object.entries(extracted.slots).some(([slotName, value]) =>
-                previouslySelected.slots[slotName] !== undefined &&
-                previouslySelected.slots[slotName] !== value
-              );
+            const explicitlyStartsDifferentEntity = isExplicitActivation && (
+              (nextScenario !== undefined && nextScenario.id !== previouslySelected.scenarioId) ||
+              (extracted.status === 'RESOLVED' &&
+                Object.entries(extracted.slots).some(([slotName, value]) =>
+                  previouslySelected.slots[slotName] !== undefined &&
+                  previouslySelected.slots[slotName] !== value
+                ))
+            );
 
             if (explicitlyStartsDifferentEntity) {
               // A new activation naming another entity is a new request, not a
