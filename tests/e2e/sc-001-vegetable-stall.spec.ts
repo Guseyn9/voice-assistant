@@ -122,7 +122,7 @@ test.describe('SC-001: Live Application Runtime Execution E2E (External JSON & S
 
   test('RUNTIME-E2E-01: Upload External JSON, Activate File Source & Verify Strict 6-Step Execution Trace', async ({ page }) => {
     // 1. Open Live Validation Bench
-    const appUrl = process.env.APP_URL || 'https://voice-assistant-two-olive.vercel.app';
+    const appUrl = process.env.APP_URL || 'http://localhost:3000';
     await page.goto(appUrl);
     await expect(page.locator('body')).toBeVisible();
 
