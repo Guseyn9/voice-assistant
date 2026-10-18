@@ -11,16 +11,33 @@
         "type": "voice",
         "value": "voice.accept-order"
       },
-      "aliases": ["прими заказ"],
+      "aliases": [
+        "прими заказ"
+      ],
       "intent": "ACCEPT_ORDER",
-      "requiredSlots": ["orderId", "payment"],
+      "requiredSlots": [
+        "orderId",
+        "payment"
+      ],
       "slotExtractors": {
-        "orderId": { "type": "integer", "pattern": "\\\\b\\\\d+\\\\b" },
+        "orderId": {
+          "type": "integer",
+          "pattern": "\\b\\\\d+\\b"
+        },
         "payment": {
           "type": "enum",
           "mapping": {
-            "card": ["картой", "карта", "безнал", "card"],
-            "cash": ["наличными", "наличка", "cash"]
+            "card": [
+              "картой",
+              "карта",
+              "безнал",
+              "card"
+            ],
+            "cash": [
+              "наличными",
+              "наличка",
+              "cash"
+            ]
           }
         }
       },
