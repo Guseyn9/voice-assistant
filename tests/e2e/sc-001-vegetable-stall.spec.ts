@@ -6,6 +6,7 @@ import * as path from 'path';
 const scenarioFilePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../scenario-sc-001-vegetable-stall.json');
 const rawContent = fs.readFileSync(scenarioFilePath, 'utf-8');
 const scenarioSet = JSON.parse(rawContent);
+const emittedSteps = scenarioSet.scenarios[0].steps.filter((step: any) => step.kind === 'emit');
 
 // ============================================================================
 // SUITE 1: SC-001 Scenario JSON Contract & Schema Tests
@@ -30,13 +31,13 @@ test.describe('SC-001: Scenario JSON Contract & Schema Validation', () => {
   });
 
   test('CONTRACT-02: Step 1 Schema - QUERY_INVENTORY_STOCK (Tomatoes)', async () => {
-    const stepInput = scenarioSet.scenarios[0].steps[0];
+    const stepInput = emittedSteps[0];
     expect(stepInput.kind).toBe('emit');
     expect(stepInput.event.type).toBe('VOICE_INPUT_RECEIVED');
     expect(stepInput.event.payload.itemId).toBe('tomatoes');
     expect(stepInput.event.payload.action).toBe('QUERY_INVENTORY_STOCK');
 
-    const stepOutput = scenarioSet.scenarios[0].steps[1];
+    const stepOutput = emittedSteps[1];
     expect(stepOutput.kind).toBe('emit');
     expect(stepOutput.event.type).toBe('INVENTORY_STOCK_RESOLVED');
     expect(stepOutput.event.payload.itemId).toBe('tomatoes');
@@ -45,13 +46,13 @@ test.describe('SC-001: Scenario JSON Contract & Schema Validation', () => {
   });
 
   test('CONTRACT-03: Step 2 Schema - PROCESS_SALE_AND_EMIT_RECEIPT', async () => {
-    const stepInput = scenarioSet.scenarios[0].steps[3];
+    const stepInput = emittedSteps[2];
     expect(stepInput.kind).toBe('emit');
     expect(stepInput.event.type).toBe('VOICE_INPUT_RECEIVED');
     expect(stepInput.event.payload.action).toBe('PROCESS_SALE_AND_EMIT_RECEIPT');
     expect(stepInput.event.payload.quantity).toBe(2.0);
 
-    const stepOutput = scenarioSet.scenarios[0].steps[4];
+    const stepOutput = emittedSteps[3];
     expect(stepOutput.kind).toBe('emit');
     expect(stepOutput.event.type).toBe('SALE_TRANSACTION_COMPLETED');
     expect(stepOutput.event.payload.receiptPrinted).toBe(true);
@@ -60,48 +61,48 @@ test.describe('SC-001: Scenario JSON Contract & Schema Validation', () => {
   });
 
   test('CONTRACT-04: Step 3 Schema - UPDATE_CATALOG_ITEM_PRICE', async () => {
-    const stepInput = scenarioSet.scenarios[0].steps[6];
+    const stepInput = emittedSteps[4];
     expect(stepInput.kind).toBe('emit');
     expect(stepInput.event.type).toBe('VOICE_INPUT_RECEIVED');
     expect(stepInput.event.payload.action).toBe('UPDATE_CATALOG_ITEM_PRICE');
 
-    const stepOutput = scenarioSet.scenarios[0].steps[7];
+    const stepOutput = emittedSteps[5];
     expect(stepOutput.kind).toBe('emit');
     expect(stepOutput.event.type).toBe('ITEM_PRICE_UPDATED');
     expect(stepOutput.event.payload.newPrice).toBe(20.0);
   });
 
   test('CONTRACT-05: Step 4 Schema - SET_ITEM_OUT_OF_STOCK', async () => {
-    const stepInput = scenarioSet.scenarios[0].steps[9];
+    const stepInput = emittedSteps[6];
     expect(stepInput.kind).toBe('emit');
     expect(stepInput.event.type).toBe('VOICE_INPUT_RECEIVED');
     expect(stepInput.event.payload.action).toBe('SET_ITEM_OUT_OF_STOCK');
 
-    const stepOutput = scenarioSet.scenarios[0].steps[10];
+    const stepOutput = emittedSteps[7];
     expect(stepOutput.kind).toBe('emit');
     expect(stepOutput.event.type).toBe('ITEM_STATUS_OUT_OF_STOCK_TRIGGERED');
     expect(stepOutput.event.payload.quantity).toBe(0.0);
   });
 
   test('CONTRACT-06: Step 5 Schema - CREATE_NEW_CATALOG_ITEM', async () => {
-    const stepInput = scenarioSet.scenarios[0].steps[12];
+    const stepInput = emittedSteps[8];
     expect(stepInput.kind).toBe('emit');
     expect(stepInput.event.type).toBe('VOICE_INPUT_RECEIVED');
     expect(stepInput.event.payload.action).toBe('CREATE_NEW_CATALOG_ITEM');
 
-    const stepOutput = scenarioSet.scenarios[0].steps[13];
+    const stepOutput = emittedSteps[9];
     expect(stepOutput.kind).toBe('emit');
     expect(stepOutput.event.type).toBe('CATALOG_ITEM_CREATED');
     expect(stepOutput.event.payload.itemName).toBe('Клубника');
   });
 
   test('CONTRACT-07: Step 6 Schema - SET_INVENTORY_STOCK_LEVEL', async () => {
-    const stepInput = scenarioSet.scenarios[0].steps[15];
+    const stepInput = emittedSteps[10];
     expect(stepInput.kind).toBe('emit');
     expect(stepInput.event.type).toBe('VOICE_INPUT_RECEIVED');
     expect(stepInput.event.payload.action).toBe('SET_INVENTORY_STOCK_LEVEL');
 
-    const stepOutput = scenarioSet.scenarios[0].steps[16];
+    const stepOutput = emittedSteps[11];
     expect(stepOutput.kind).toBe('emit');
     expect(stepOutput.event.type).toBe('INVENTORY_STOCK_UPDATED');
     expect(stepOutput.event.payload.quantity).toBe(10.0);
