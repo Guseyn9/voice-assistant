@@ -167,6 +167,23 @@ export class DialogueStateManager {
     };
   }
 
+  /**
+   * Read the currently active context, or the most recent context for this session
+   * when a terminal transition has cleared activeContextId. This is an inspection
+   * helper; routing continues to use getActiveState and explicit context selection.
+   */
+  public getLatestState(identity: SessionIdentity): DialogueContext | null {
+    const active = this.getActiveState(identity);
+    if (active) return active;
+    const ctx = this.listContexts(identity).sort((a, b) => {
+      const aLive = !['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(a.status);
+      const bLive = !['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(b.status);
+      if (aLive !== bLive) return aLive ? -1 : 1;
+      return b.updatedAt - a.updatedAt;
+    })[0];
+    return ctx || null;
+  }
+
   public getContext(contextId: string, identity: SessionIdentity): DialogueContext | undefined {
     this.validateIdentity(identity);
     const ctx = this.contexts.get(contextId);
