@@ -125,6 +125,34 @@ export class VoiceChannel {
     this.dialogueManager = dialogueManager;
   }
 
+  /**
+   * Resolve declarative event payload templates against the authoritative dialogue slots.
+   * A full-slot template preserves the slot's runtime type (for example, orderId stays a
+   * number); embedded templates are interpolated as strings. Nested payloads are supported.
+   */
+  private resolveEventPayload(
+    payload: Record<string, any>,
+    slots: Record<string, any>
+  ): Record<string, any> {
+    const resolveValue = (value: any): any => {
+      if (typeof value === 'string') {
+        const exact = value.match(/^\\{\\{\\s*slots\\.([A-Za-z_][A-Za-z0-9_]*)\\s*\\}\\}$/);
+        if (exact) {
+          return Object.prototype.hasOwnProperty.call(slots, exact[1]) ? slots[exact[1]] : value;
+        }
+        return value.replace(/\\{\\{\\s*slots\\.([A-Za-z_][A-Za-z0-9_]*)\\s*\\}\\}/g, (token, key: string) =>
+          Object.prototype.hasOwnProperty.call(slots, key) ? String(slots[key]) : token
+        );
+      }
+      if (Array.isArray(value)) return value.map(resolveValue);
+      if (value && typeof value === 'object') {
+        return Object.fromEntries(Object.entries(value).map(([key, nested]) => [key, resolveValue(nested)]));
+      }
+      return value;
+    };
+    return resolveValue(payload);
+  }
+
   public registerScenarioSet(scenarioSet: ScenarioSet): void {
     if (!scenarioSet || !Array.isArray(scenarioSet.scenarios)) {
       throw new Error('CONTRACT_VIOLATION: Invalid ScenarioSet structure');
@@ -909,7 +937,7 @@ export class VoiceChannel {
               const fillRes = await this.dialogueManager.fillSlot('confirmation', 'CONFIRMED', currentCtx.contextId, identity);
               if (fillRes.success) {
                 const updated = fillRes.data;
-                const eventPayload = scenario.steps?.find(st => st.kind === 'emit')?.event?.payload || {};
+                const eventPayload = this.resolveEventPayload(scenario.steps?.find(st => st.kind === 'emit')?.event?.payload || {}, updated.slots);
                 const exec = this.dialogueManager.createExecution(updated, identity, undefined, eventPayload);
                 const dispatchRes = await this.dialogueManager.dispatchAction(exec.executionId, exec.payload, identity);
                 return {
@@ -956,7 +984,7 @@ export class VoiceChannel {
               };
             }
 
-            const eventPayload = scenario.steps?.find(st => st.kind === 'emit')?.event?.payload || {};
+            const eventPayload = this.resolveEventPayload(scenario.steps?.find(st => st.kind === 'emit')?.event?.payload || {}, currentCtx.slots);
             const execution = this.dialogueManager.createExecution(currentCtx, identity, undefined, eventPayload);
             const dispatchResult = await this.dialogueManager.dispatchAction(execution.executionId, execution.payload, identity);
             return {
@@ -1148,7 +1176,7 @@ export class VoiceChannel {
       );
 
       if (ctx.missingSlots.length === 0) {
-        const eventPayload = sc.steps?.find(st => st.kind === 'emit')?.event?.payload || {};
+        const eventPayload = this.resolveEventPayload(sc.steps?.find(st => st.kind === 'emit')?.event?.payload || {}, ctx.slots);
         const exec = this.dialogueManager.createExecution(ctx, identity, undefined, eventPayload);
         const dispatchRes = await this.dialogueManager.dispatchAction(exec.executionId, exec.payload, identity);
         return {
