@@ -8,7 +8,7 @@ test.describe('SC-003: Taxi Driver End-to-End Voice Channel, Strict FSM Transiti
 
   // Helper function to initialize, load scenario and simulate voice input
   async function setupAppWithScenario(page: any) {
-    const appUrl = process.env.APP_URL || 'https://voice-assistant-two-olive.vercel.app';
+    const appUrl = process.env.APP_URL || 'http://localhost:3000';
     await page.goto(appUrl);
     await expect(page.locator('body')).toBeVisible();
 
