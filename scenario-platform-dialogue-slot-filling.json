@@ -91,11 +91,11 @@
           "type": "integer",
           "rules": [
             {
-              "pattern": "\\\\bпять\\\\b",
+              "pattern": "\\bпять\\b",
               "value": 5
             },
             {
-              "pattern": "\\\\b5\\\\b",
+              "pattern": "\\b5\\b",
               "value": 5
             }
           ],
