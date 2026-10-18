@@ -208,12 +208,12 @@ test.describe('E2E: SC-010 Multi-Context Complete Lifecycle Suite (ТЗ-VOICE-SC
     await emitVoicePhrase(page, 'Прими заказ 1004');
     await emitVoicePhrase(page, 'Не знаю'); // invalid turn
 
-    let state1004 = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getActiveState((window as any).__VOICE_DEMO_APP__.getIdentity()));
+    let state1004 = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getLatestState((window as any).__VOICE_DEMO_APP__.getIdentity()));
     expect(state1004.status).toBe('WAITING_FOR_SLOT');
     expect(state1004.slots.orderId).toBe(1004);
 
     await emitVoicePhrase(page, 'Наличными'); // recovery turn
-    state1004 = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getActiveState((window as any).__VOICE_DEMO_APP__.getIdentity()));
+    state1004 = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getLatestState((window as any).__VOICE_DEMO_APP__.getIdentity()));
     expect(state1004.status).toBe('COMPLETED');
     const id1004 = state1004.contextId;
 
