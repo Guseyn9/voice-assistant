@@ -154,11 +154,30 @@ export class DialogueStateManager {
 
   public getActiveState(identity: SessionIdentity): DialogueContext | null {
     this.validateIdentity(identity);
-    if (!this.activeContextId) return null;
-    const ctx = this.contexts.get(this.activeContextId);
-    if (!ctx || ctx.ownerId !== identity.ownerId || ctx.sessionId !== identity.sessionId) {
-      return null;
-    }
+    const active = this.activeContextId ? this.contexts.get(this.activeContextId) : undefined;
+    const activeForSession = active &&
+      active.ownerId === identity.ownerId &&
+      active.sessionId === identity.sessionId
+      ? active
+      : undefined;
+
+    // Terminal transitions clear activeContextId to prevent accidental routing back into
+    // a completed/cancelled context. Keep state inspection useful after that transition:
+    // prefer the newest non-terminal context in this session, then the newest terminal
+    // context when no live context remains. Routing still uses the explicit context registry.
+    const ctx = activeForSession || Array.from(this.contexts.values())
+      .filter(candidate =>
+        candidate.ownerId === identity.ownerId &&
+        candidate.sessionId === identity.sessionId
+      )
+      .sort((a, b) => {
+        const aLive = !['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(a.status);
+        const bLive = !['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(b.status);
+        if (aLive !== bLive) return aLive ? -1 : 1;
+        return (b.updatedAt ?? b.createdAt ?? 0) - (a.updatedAt ?? a.createdAt ?? 0);
+      })[0];
+
+    if (!ctx) return null;
     return {
       ...ctx,
       slots: { ...ctx.slots },
