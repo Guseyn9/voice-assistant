@@ -52,6 +52,7 @@ export interface CandidateBindingDefinition {
 export interface ConfirmationDefinition {
   slot: string;
   confirmedValue: string;
+  confirmedStatus?: string;
   rejectedValue: string;
   confirmLabel?: string;
   rejectLabel?: string;
@@ -996,6 +997,9 @@ export class VoiceChannel {
               if (fillRes.success) {
                 const updated = fillRes.data;
                 const eventPayload = this.resolveEventPayload(scenario.steps?.find(st => st.kind === 'emit')?.event?.payload || {}, updated.slots);
+                if (scenario.confirmation?.confirmedStatus && eventPayload.status === undefined) {
+                  eventPayload.status = scenario.confirmation.confirmedStatus;
+                }
                 const exec = this.dialogueManager.createExecution(updated, identity, undefined, eventPayload);
                 const dispatchRes = await this.dialogueManager.dispatchAction(exec.executionId, exec.payload, identity);
                 if (dispatchRes.status === 'SUCCEEDED') {
