@@ -45,16 +45,12 @@
             "payload": {
               "channel": "inventory",
               "itemId": "tomatoes",
-              "quantity": 15.0,
+              "quantity": 15,
               "unit": "kg",
               "speech": "Помидоров осталось 15 килограммов.",
               "status": "in_stock"
             }
           }
-        },
-        {
-          "kind": "delay",
-          "ms": 500
         },
         {
           "kind": "emit",
@@ -71,10 +67,10 @@
               ],
               "action": "PROCESS_SALE_AND_EMIT_RECEIPT",
               "itemId": "tomatoes",
-              "quantity": 2.0,
+              "quantity": 2,
               "unit": "kg",
-              "pricePerUnit": 15.0,
-              "totalAmount": 30.0,
+              "pricePerUnit": 15,
+              "totalAmount": 30,
               "currency": "AED",
               "printReceipt": true,
               "difficulty": "critical",
@@ -89,21 +85,17 @@
             "payload": {
               "channel": "pos",
               "itemId": "tomatoes",
-              "quantity": 2.0,
+              "quantity": 2,
               "unit": "kg",
-              "pricePerUnit": 15.0,
-              "totalAmount": 30.0,
+              "pricePerUnit": 15,
+              "totalAmount": 30,
               "currency": "AED",
               "receiptPrinted": true,
               "receiptId": "REC-2026-001",
-              "remainingStock": 13.0,
+              "remainingStock": 13,
               "speech": "Продано два килограмма помидоров на сумму 30 дирхам. Чек напечатан."
             }
           }
-        },
-        {
-          "kind": "delay",
-          "ms": 500
         },
         {
           "kind": "emit",
@@ -120,7 +112,7 @@
               ],
               "action": "UPDATE_CATALOG_ITEM_PRICE",
               "itemId": "cucumbers",
-              "newPrice": 20.0,
+              "newPrice": 20,
               "currency": "AED",
               "unit": "kg",
               "difficulty": "standard"
@@ -134,16 +126,12 @@
             "payload": {
               "channel": "catalog",
               "itemId": "cucumbers",
-              "newPrice": 20.0,
+              "newPrice": 20,
               "currency": "AED",
               "unit": "kg",
               "speech": "Цена на огурцы установлена: 20 дирхам за килограмм."
             }
           }
-        },
-        {
-          "kind": "delay",
-          "ms": 500
         },
         {
           "kind": "emit",
@@ -171,15 +159,11 @@
             "payload": {
               "channel": "inventory",
               "itemId": "cucumbers",
-              "quantity": 0.0,
+              "quantity": 0,
               "status": "out_of_stock",
               "speech": "Огурцы отмечены как закончившиеся. Товар снят с витрины."
             }
           }
-        },
-        {
-          "kind": "delay",
-          "ms": 500
         },
         {
           "kind": "emit",
@@ -197,7 +181,7 @@
               "action": "CREATE_NEW_CATALOG_ITEM",
               "itemName": "Клубника",
               "category": "Ягоды",
-              "price": 35.0,
+              "price": 35,
               "currency": "AED",
               "unit": "kg",
               "difficulty": "standard",
@@ -214,16 +198,12 @@
               "itemId": "strawberries",
               "itemName": "Клубника",
               "category": "Ягоды",
-              "price": 35.0,
+              "price": 35,
               "currency": "AED",
               "unit": "kg",
               "speech": "Клубника добавлена в ассортимент по цене 35 дирхам за килограмм."
             }
           }
-        },
-        {
-          "kind": "delay",
-          "ms": 500
         },
         {
           "kind": "emit",
@@ -240,7 +220,7 @@
               ],
               "action": "SET_INVENTORY_STOCK_LEVEL",
               "itemId": "potatoes",
-              "newQuantity": 10.0,
+              "newQuantity": 10,
               "unit": "kg",
               "difficulty": "standard"
             }
@@ -253,15 +233,11 @@
             "payload": {
               "channel": "inventory",
               "itemId": "potatoes",
-              "quantity": 10.0,
+              "quantity": 10,
               "unit": "kg",
               "speech": "Остаток картофеля обновлен: 10 килограммов."
             }
           }
-        },
-        {
-          "kind": "delay",
-          "ms": 300
         },
         {
           "kind": "end"
