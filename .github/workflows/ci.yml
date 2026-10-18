@@ -2,7 +2,7 @@ name: Voice Platform CI Pipeline
 
 on:
   push:
-    branches: [ master, main ]
+    branches: [ master, main, work/runtime-context-routing ]
   pull_request:
   workflow_dispatch:
 
