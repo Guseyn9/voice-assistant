@@ -11,10 +11,15 @@
         "type": "voice",
         "value": "voice.order-dispatch"
       },
-      "aliases": ["прими заказ", "заказ"],
+      "aliases": [
+        "прими заказ",
+        "заказ"
+      ],
       "priority": 100,
       "intent": "ORDER_DISPATCH",
-      "requiredSlots": ["orderId"],
+      "requiredSlots": [
+        "orderId"
+      ],
       "slotExtractors": {
         "orderId": {
           "type": "integer",
