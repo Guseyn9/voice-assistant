@@ -35,7 +35,14 @@
       "aliases": [
         "прими заказ",
         "принять заказ"
-      ]
+      ],
+      "slotExtractors": {
+        "orderId": {
+          "type": "integer",
+          "pattern": "\\b\\d+\\b",
+          "priority": 100
+        }
+      }
     },
     {
       "id": "sc005-step02-arrived",
