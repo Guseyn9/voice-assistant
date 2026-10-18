@@ -193,10 +193,33 @@ export function mountApp(root: HTMLElement, runtime: any, authenticatedIdentity:
         throw new Error('Invalid ScenarioSet JSON');
       }
       activeSet = parsed;
-      // Dialogue scenarios are registered with the real VoiceChannel. Generic event-playback
-      // scenarios without intents remain in the scenario runner and are not forced into that API.
-      if (parsed.scenarios.length > 0 && parsed.scenarios.every(scenario => typeof scenario.intent === 'string' && scenario.intent.length > 0)) {
-        runtime.voiceChannel.registerScenarioSet(parsed);
+      // Register voice-capable scenario sets with the real VoiceChannel. Older declarative
+      // taxi fixtures omit intent/requiredSlots; infer those from their emitted domain event so
+      // browser voice commands exercise the same runtime path as newer scenario definitions.
+      const intentByEvent: Record<string, string> = {
+        'driver.order.accepted': 'ACCEPT_ORDER',
+        'driver.arrived': 'DRIVER_ARRIVED',
+        'driver.trip.started': 'START_TRIP',
+        'driver.trip.finished': 'FINISH_TRIP',
+        'driver.available': 'DRIVER_AVAILABLE'
+      };
+      const normalizedScenarios = parsed.scenarios.map(scenario => {
+        const emitted = scenario.steps?.find(step => step.kind === 'emit' && step.event)?.event;
+        const inferredIntent = emitted ? intentByEvent[emitted.type] : undefined;
+        const intent = scenario.intent || inferredIntent;
+        if (!intent) return scenario;
+        const templateSlots = Object.values(emitted?.payload || {}).flatMap(value => {
+          if (typeof value !== 'string') return [];
+          return Array.from(value.matchAll(/\\{\\{\\s*slots\\.([A-Za-z_][A-Za-z0-9_]*)\\s*\\}\\}/g), match => match[1]);
+        });
+        const requiredSlots = scenario.requiredSlots || Array.from(new Set(templateSlots));
+        const slotExtractors = scenario.slotExtractors || Object.fromEntries(
+          requiredSlots.map(slot => [slot, { type: 'integer', pattern: '\\\\b\\\\d+\\\\b' }])
+        );
+        return { ...scenario, intent, requiredSlots, slotExtractors };
+      });
+      if (normalizedScenarios.length > 0 && normalizedScenarios.every(scenario => typeof scenario.intent === 'string' && scenario.intent.length > 0)) {
+        runtime.voiceChannel.registerScenarioSet({ ...parsed, scenarios: normalizedScenarios } as any);
       }
       fileName.textContent = file.name;
       setId.textContent = parsed.id;
