@@ -210,11 +210,11 @@ export function mountApp(root: HTMLElement, runtime: any, authenticatedIdentity:
         if (!intent) return scenario;
         const templateSlots = Object.values(emitted?.payload || {}).flatMap(value => {
           if (typeof value !== 'string') return [];
-          return Array.from(value.matchAll(/\\{\\{\\s*slots\\.([A-Za-z_][A-Za-z0-9_]*)\\s*\\}\\}/g), match => match[1]);
+          return Array.from(value.matchAll(/\{\{\s*slots\.([A-Za-z_][A-Za-z0-9_]*)\s*\}\}/g), match => match[1]);
         });
         const requiredSlots = scenario.requiredSlots || Array.from(new Set(templateSlots));
         const slotExtractors = scenario.slotExtractors || Object.fromEntries(
-          requiredSlots.map(slot => [slot, { type: 'integer', pattern: '\\\\b\\\\d+\\\\b' }])
+          requiredSlots.map(slot => [slot, { type: 'integer', pattern: '\\b\\d+\\b' }])
         );
         return { ...scenario, intent, requiredSlots, slotExtractors };
       });
