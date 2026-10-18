@@ -706,7 +706,16 @@ export class VoiceChannel {
         const normalizedTrigger = normalize(trigger);
         return normalizedText === normalizedTrigger || normalizedText.startsWith(`${normalizedTrigger} `);
       })) {
-        this.explicitContextSelections.delete(sessionKey);
+        const selectedContextId = this.explicitContextSelections.get(sessionKey);
+        const selectedContext = selectedContextId
+          ? this.dialogueManager.getContext(selectedContextId, identity)
+          : undefined;
+        const selectedIsTerminal = selectedContext &&
+          ['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(selectedContext.status);
+        // Keep terminal selection until the routing block can distinguish a duplicate
+        // activation from a new intent/entity. Clearing it here makes duplicate actions
+        // execute twice and lets slot replies spill into a different order.
+        if (!selectedIsTerminal) this.explicitContextSelections.delete(sessionKey);
       }
     }
 
