@@ -11,8 +11,26 @@
         "type": "voice",
         "value": "voice.process-test-action"
       },
+      "aliases": ["обработай яблоки"],
       "intent": "PROCESS_TEST_ACTION",
       "requiredSlots": ["item", "quantity"],
+      "slotExtractors": {
+        "item": {
+          "type": "enum",
+          "mapping": {
+            "apples": ["яблоки", "яблок", "яблоко"]
+          },
+          "priority": 100
+        },
+        "quantity": {
+          "type": "integer",
+          "rules": [
+            { "pattern": "\\bпять\\b", "value": 5 },
+            { "pattern": "\\b5\\b", "value": 5 }
+          ],
+          "priority": 100
+        }
+      },
       "clarificationPrompts": {
         "quantity": "Сколько?"
       },
