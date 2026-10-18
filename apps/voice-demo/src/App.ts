@@ -176,7 +176,7 @@ export function mountApp(root: HTMLElement, runtime: any, authenticatedIdentity:
       const button = document.createElement('button');
       button.type = 'button';
       button.textContent = scenarioSet.scenarios.length > 1
-        ? `Start scenario — ${buttonLabel(scenario)}`
+        ? buttonLabel(scenario)
         : 'Start scenario';
       button.addEventListener('click', () => { void scenarioEngine.runScenario(index); });
       actions.appendChild(button);
