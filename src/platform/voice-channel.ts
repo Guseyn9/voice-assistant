@@ -781,16 +781,42 @@ export class VoiceChannel {
             this.explicitContextSelections.set(sessionKey, explicitlySelectsAnotherContext.contextId);
             activeWaiting = [explicitlySelectsAnotherContext];
           } else {
-            // Keep a terminal selection sticky for duplicate slot values; never
-            // leak a repeated value into another order.
-            return {
-              status: previouslySelected.status,
-              contextId: previouslySelected.contextId,
-              intent: previouslySelected.intent,
-              slots: previouslySelected.slots,
-              missingSlots: previouslySelected.missingSlots,
-              context: previouslySelected
-            };
+            const normalize = (value: string) =>
+              value.replace(/^voice\\./i, '').replace(/[-_]/g, ' ').toLowerCase().trim().replace(/\\s+/g, ' ');
+            const triggers = [
+              scenario?.activation?.value,
+              scenario?.expectedPhrase,
+              ...(scenario?.triggerPhrases || []),
+              ...(scenario?.aliases || [])
+            ].filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
+            const isExplicitActivation = triggers.some(trigger => {
+              const normalizedTrigger = normalize(trigger);
+              const normalizedText = normalize(text);
+              return normalizedText === normalizedTrigger || normalizedText.startsWith(`${normalizedTrigger} `);
+            });
+            const explicitlyStartsDifferentEntity = isExplicitActivation &&
+              extracted.status === 'RESOLVED' &&
+              Object.entries(extracted.slots).some(([slotName, value]) =>
+                previouslySelected.slots[slotName] !== undefined &&
+                previouslySelected.slots[slotName] !== value
+              );
+
+            if (explicitlyStartsDifferentEntity) {
+              // A new activation naming another entity is a new request, not a
+              // duplicate continuation of the terminal context.
+              this.explicitContextSelections.delete(sessionKey);
+            } else {
+              // Keep a terminal selection sticky for duplicate slot values; never
+              // leak a repeated value into another order.
+              return {
+                status: previouslySelected.status,
+                contextId: previouslySelected.contextId,
+                intent: previouslySelected.intent,
+                slots: previouslySelected.slots,
+                missingSlots: previouslySelected.missingSlots,
+                context: previouslySelected
+              };
+            }
           }
         } else {
           this.explicitContextSelections.delete(sessionKey);
