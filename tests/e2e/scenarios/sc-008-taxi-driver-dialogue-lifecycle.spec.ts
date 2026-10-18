@@ -37,13 +37,13 @@ test.describe('E2E: SC-008 Dialogue Lifecycle, Cancellation & Recovery Suite (Т
     await emitVoicePhrase(page, 'Прими заказ');
     await emitVoicePhrase(page, '1001');
 
-    let state = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getActiveState((window as any).__VOICE_DEMO_APP__.getIdentity()));
+    let state = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getLatestState((window as any).__VOICE_DEMO_APP__.getIdentity()));
     expect(state.status).toBe('WAITING_FOR_SLOT');
     expect(state.slots.orderId).toBe(1001);
     expect(state.missingSlots).toEqual(['payment']);
 
     await emitVoicePhrase(page, 'Отмена');
-    state = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getActiveState((window as any).__VOICE_DEMO_APP__.getIdentity()));
+    state = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getLatestState((window as any).__VOICE_DEMO_APP__.getIdentity()));
     expect(state.status).toBe('CANCELLED');
 
     const executions1001 = await page.evaluate(() => {
@@ -57,11 +57,11 @@ test.describe('E2E: SC-008 Dialogue Lifecycle, Cancellation & Recovery Suite (Т
     await setupApp(page);
     await emitVoicePhrase(page, 'Прими заказ');
 
-    let state = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getActiveState((window as any).__VOICE_DEMO_APP__.getIdentity()));
+    let state = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getLatestState((window as any).__VOICE_DEMO_APP__.getIdentity()));
     expect(state.status).toBe('WAITING_FOR_SLOT');
 
     await emitVoicePhrase(page, 'Отмена');
-    state = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getActiveState((window as any).__VOICE_DEMO_APP__.getIdentity()));
+    state = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getLatestState((window as any).__VOICE_DEMO_APP__.getIdentity()));
     expect(state.status).toBe('CANCELLED');
 
     const allExecutions = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity()));
@@ -123,24 +123,24 @@ test.describe('E2E: SC-008 Dialogue Lifecycle, Cancellation & Recovery Suite (Т
     await emitVoicePhrase(page, 'Прими заказ');
     await emitVoicePhrase(page, 'Не знаю'); // invalid 1st
 
-    let state = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getActiveState((window as any).__VOICE_DEMO_APP__.getIdentity()));
+    let state = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getLatestState((window as any).__VOICE_DEMO_APP__.getIdentity()));
     expect(state.status).toBe('WAITING_FOR_SLOT');
     expect(state.missingSlots).toEqual(['orderId', 'payment']);
 
     await emitVoicePhrase(page, '1001'); // valid 1st
-    state = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getActiveState((window as any).__VOICE_DEMO_APP__.getIdentity()));
+    state = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getLatestState((window as any).__VOICE_DEMO_APP__.getIdentity()));
     expect(state.status).toBe('WAITING_FOR_SLOT');
     expect(state.slots.orderId).toBe(1001);
     expect(state.missingSlots).toEqual(['payment']);
 
     await emitVoicePhrase(page, 'Не знаю'); // invalid 2nd (must preserve orderId: 1001)
-    state = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getActiveState((window as any).__VOICE_DEMO_APP__.getIdentity()));
+    state = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getLatestState((window as any).__VOICE_DEMO_APP__.getIdentity()));
     expect(state.status).toBe('WAITING_FOR_SLOT');
     expect(state.slots.orderId).toBe(1001);
     expect(state.missingSlots).toEqual(['payment']);
 
     await emitVoicePhrase(page, 'Картой'); // valid 2nd
-    state = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getActiveState((window as any).__VOICE_DEMO_APP__.getIdentity()));
+    state = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getLatestState((window as any).__VOICE_DEMO_APP__.getIdentity()));
     expect(state.status).toBe('COMPLETED');
     expect(state.slots).toEqual({ orderId: 1001, payment: 'card' });
 
@@ -223,7 +223,7 @@ test.describe('E2E: SC-008 Dialogue Lifecycle, Cancellation & Recovery Suite (Т
     await emitVoicePhrase(page, 'Отмена');
     await emitVoicePhrase(page, 'Отмена');
 
-    const state = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getActiveState((window as any).__VOICE_DEMO_APP__.getIdentity()));
+    const state = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getLatestState((window as any).__VOICE_DEMO_APP__.getIdentity()));
     expect(state.status).toBe('CANCELLED');
 
     const logs = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity()));
