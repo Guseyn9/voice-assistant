@@ -11,13 +11,18 @@
         "type": "voice",
         "value": "voice.accept-order"
       },
-      "aliases": ["прими заказ"],
+      "aliases": [
+        "прими заказ"
+      ],
       "intent": "ACCEPT_ORDER",
       "requiredSlots": [
         "orderId"
       ],
       "slotExtractors": {
-        "orderId": { "type": "integer", "pattern": "\\\\b\\\\d+\\\\b" }
+        "orderId": {
+          "type": "integer",
+          "pattern": "\\b\\\\d+\\b"
+        }
       },
       "clarificationPrompts": {
         "orderId": "Какой заказ?"
