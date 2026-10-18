@@ -1,12 +1,13 @@
 import { test, expect } from '@playwright/test';
+import { fileURLToPath } from 'node:url';
 import * as path from 'path';
 
-const scenarioFilePath = path.resolve(__dirname, '../../../scenario-sc-002-taxi-driver.json');
+const scenarioFilePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../scenario-sc-002-taxi-driver.json');
 
 test.describe('SC-002: Taxi Driver Standard Trip - Runtime E2E Suite', () => {
 
   test.beforeEach(async ({ page }) => {
-    const appUrl = process.env.APP_URL || 'https://voice-assistant-two-olive.vercel.app';
+    const appUrl = process.env.APP_URL || 'http://localhost:3000';
     await page.goto(appUrl);
     await expect(page.locator('body')).toBeVisible();
 
@@ -19,6 +20,7 @@ test.describe('SC-002: Taxi Driver Standard Trip - Runtime E2E Suite', () => {
     // 2. Upload SC-002 JSON
     const fileInput = page.locator('[data-testid="scenario-file-input"]').or(page.locator('input[type="file"]')).first();
     await fileInput.setInputFiles(scenarioFilePath);
+    await page.evaluate(async () => { await (window as any).__SCENARIO_LOAD_PROMISE__; });
 
     // 3. Verify filename and ScenarioSet ID in UI
     await expect(page.locator('text=scenario-sc-002-taxi-driver.json').or(page.locator('text=Taxi Driver Standard Trip')).first()).toBeVisible({ timeout: 5000 });

@@ -11,8 +11,17 @@
         "type": "voice",
         "value": "voice.accept-order"
       },
+      "triggerPhrases": [
+        "прими заказ",
+        "принять заказ",
+        "принимаю заказ",
+        "беру заказ"
+      ],
       "intent": "ACCEPT_ORDER",
-      "requiredSlots": ["orderId", "payment"],
+      "requiredSlots": [
+        "orderId",
+        "payment"
+      ],
       "slotExtractors": {
         "orderId": {
           "type": "integer",
@@ -21,8 +30,17 @@
         "payment": {
           "type": "enum",
           "mapping": {
-            "card": ["картой", "карта", "безнал", "card"],
-            "cash": ["наличными", "наличка", "cash"]
+            "card": [
+              "картой",
+              "карта",
+              "безнал",
+              "card"
+            ],
+            "cash": [
+              "наличными",
+              "наличка",
+              "cash"
+            ]
           }
         }
       },
@@ -69,6 +87,11 @@
         {
           "kind": "end"
         }
+      ],
+      "triggerPhrases": [
+        "я приехал",
+        "прибыл",
+        "на месте"
       ]
     }
   ]

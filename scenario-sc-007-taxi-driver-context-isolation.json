@@ -2,7 +2,7 @@
   "version": 2,
   "id": "scenario-set-sc-007-taxi-driver-context-isolation",
   "name": "Taxi Driver Context Isolation Workflow",
-  "description": "Сценарий проверки строгой изоляции контекста при переключении между заказами (1001 -> 1002) без смешивания slots и actions.",
+  "description": "Сценарий проверки строгой изоляции контекста при переключении между заказами без смешивания slots и actions.",
   "scenarios": [
     {
       "id": "sc007-accept-order-isolation",
@@ -11,8 +11,36 @@
         "type": "voice",
         "value": "voice.accept-order"
       },
+      "aliases": [
+        "прими заказ"
+      ],
       "intent": "ACCEPT_ORDER",
-      "requiredSlots": ["orderId", "payment"],
+      "requiredSlots": [
+        "orderId",
+        "payment"
+      ],
+      "slotExtractors": {
+        "orderId": {
+          "type": "integer",
+          "pattern": "\\b\\d+\\b"
+        },
+        "payment": {
+          "type": "enum",
+          "mapping": {
+            "card": [
+              "картой",
+              "карта",
+              "безнал",
+              "card"
+            ],
+            "cash": [
+              "наличными",
+              "наличка",
+              "cash"
+            ]
+          }
+        }
+      },
       "clarificationPrompts": {
         "orderId": "Какой заказ?",
         "payment": "Какой способ оплаты?"
@@ -26,6 +54,33 @@
               "orderId": "{{slots.orderId}}",
               "payment": "{{slots.payment}}"
             }
+          }
+        },
+        {
+          "kind": "end"
+        }
+      ]
+    },
+    {
+      "id": "sc007-driver-arrived",
+      "name": "Прибытие к пассажиру",
+      "activation": {
+        "type": "voice",
+        "value": "voice.arrived"
+      },
+      "expectedPhrase": "Я приехал",
+      "aliases": [
+        "прибыл",
+        "на месте"
+      ],
+      "intent": "DRIVER_ARRIVED",
+      "requiredSlots": [],
+      "steps": [
+        {
+          "kind": "emit",
+          "event": {
+            "type": "driver.arrived",
+            "payload": {}
           }
         },
         {

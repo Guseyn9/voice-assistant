@@ -12,7 +12,10 @@
         "value": "voice.accept-order"
       },
       "intent": "ACCEPT_ORDER",
-      "requiredSlots": ["orderId", "payment"],
+      "requiredSlots": [
+        "orderId",
+        "payment"
+      ],
       "clarificationPrompts": {
         "orderId": "Какой заказ?",
         "payment": "Какой способ оплаты?"
@@ -26,6 +29,61 @@
               "orderId": "{{slots.orderId}}",
               "payment": "{{slots.payment}}"
             }
+          }
+        },
+        {
+          "kind": "end"
+        }
+      ],
+      "aliases": [
+        "прими заказ",
+        "принять заказ"
+      ],
+      "slotExtractors": {
+        "orderId": {
+          "type": "integer",
+          "pattern": "\\b\\d+\\b",
+          "priority": 100
+        },
+        "payment": {
+          "type": "enum",
+          "mapping": {
+            "card": [
+              "картой",
+              "карта",
+              "безнал",
+              "card"
+            ],
+            "cash": [
+              "наличными",
+              "наличка",
+              "cash"
+            ]
+          },
+          "priority": 100
+        }
+      }
+    },
+    {
+      "id": "sc006-driver-arrived",
+      "name": "Прибытие к пассажиру",
+      "activation": {
+        "type": "voice",
+        "value": "voice.arrived"
+      },
+      "expectedPhrase": "Я приехал",
+      "aliases": [
+        "прибыл",
+        "на месте"
+      ],
+      "intent": "DRIVER_ARRIVED",
+      "requiredSlots": [],
+      "steps": [
+        {
+          "kind": "emit",
+          "event": {
+            "type": "driver.arrived",
+            "payload": {}
           }
         },
         {

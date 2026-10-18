@@ -1,8 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { fileURLToPath } from 'node:url';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const scenarioFilePath = path.resolve(__dirname, '../../scenario-sc-001-vegetable-stall.json');
+const scenarioFilePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../scenario-sc-001-vegetable-stall.json');
 const rawContent = fs.readFileSync(scenarioFilePath, 'utf-8');
 const scenarioSet = JSON.parse(rawContent);
 
@@ -83,24 +84,24 @@ test.describe('SC-001: Scenario JSON Contract & Schema Validation', () => {
   });
 
   test('CONTRACT-06: Step 5 Schema - CREATE_NEW_CATALOG_ITEM', async () => {
-    const stepInput = scenarioSet.scenarios[0].steps[11];
+    const stepInput = scenarioSet.scenarios[0].steps[12];
     expect(stepInput.kind).toBe('emit');
     expect(stepInput.event.type).toBe('VOICE_INPUT_RECEIVED');
     expect(stepInput.event.payload.action).toBe('CREATE_NEW_CATALOG_ITEM');
 
-    const stepOutput = scenarioSet.scenarios[0].steps[12];
+    const stepOutput = scenarioSet.scenarios[0].steps[13];
     expect(stepOutput.kind).toBe('emit');
     expect(stepOutput.event.type).toBe('CATALOG_ITEM_CREATED');
     expect(stepOutput.event.payload.itemName).toBe('Клубника');
   });
 
   test('CONTRACT-07: Step 6 Schema - SET_INVENTORY_STOCK_LEVEL', async () => {
-    const stepInput = scenarioSet.scenarios[0].steps[13];
+    const stepInput = scenarioSet.scenarios[0].steps[15];
     expect(stepInput.kind).toBe('emit');
     expect(stepInput.event.type).toBe('VOICE_INPUT_RECEIVED');
     expect(stepInput.event.payload.action).toBe('SET_INVENTORY_STOCK_LEVEL');
 
-    const stepOutput = scenarioSet.scenarios[0].steps[14];
+    const stepOutput = scenarioSet.scenarios[0].steps[16];
     expect(stepOutput.kind).toBe('emit');
     expect(stepOutput.event.type).toBe('INVENTORY_STOCK_UPDATED');
     expect(stepOutput.event.payload.quantity).toBe(10.0);
@@ -121,7 +122,7 @@ test.describe('SC-001: Live Application Runtime Execution E2E (External JSON & S
 
   test('RUNTIME-E2E-01: Upload External JSON, Activate File Source & Verify Strict 6-Step Execution Trace', async ({ page }) => {
     // 1. Open Live Validation Bench
-    const appUrl = process.env.APP_URL || 'https://voice-assistant-two-olive.vercel.app';
+    const appUrl = process.env.APP_URL || 'http://localhost:3000';
     await page.goto(appUrl);
     await expect(page.locator('body')).toBeVisible();
 
@@ -134,6 +135,7 @@ test.describe('SC-001: Live Application Runtime Execution E2E (External JSON & S
     // 3. Upload the exact external scenario JSON file
     const fileInput = page.locator('[data-testid="scenario-file-input"]').or(page.locator('input[type="file"]')).first();
     await fileInput.setInputFiles(scenarioFilePath);
+    await page.evaluate(async () => { await (window as any).__SCENARIO_LOAD_PROMISE__; });
 
     // 4. Verify External File is active and confirmed in UI
     const fileNameDisplay = page.locator('[data-testid="scenario-file-name"]').or(page.locator('text=scenario-sc-001-vegetable-stall.json')).first();

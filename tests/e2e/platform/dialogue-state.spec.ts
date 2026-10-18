@@ -1,17 +1,29 @@
 import { test, expect } from '@playwright/test';
+import { fileURLToPath } from 'node:url';
 import * as path from 'path';
 
-const scenarioFilePath = path.resolve(__dirname, '../../../scenario-platform-dialogue-slot-filling.json');
+const scenarioFilePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../scenario-platform-dialogue-slot-filling.json');
 
 test.describe('E2E: Strict Platform Dialogue State & Multi-Turn Slot-Filling Suite (ТЗ-VOICE-PLATFORM-005)', () => {
 
   async function setupApp(page: any) {
-    const appUrl = process.env.APP_URL || 'https://voice-assistant-two-olive.vercel.app';
+    const appUrl = process.env.APP_URL || 'http://localhost:3000';
     await page.goto(appUrl);
     await expect(page.locator('body')).toBeVisible();
 
     const fileInput = page.locator('input[type="file"]').first();
     await fileInput.setInputFiles(scenarioFilePath);
+    await page.evaluate(async () => { await (window as any).__SCENARIO_LOAD_PROMISE__; });
+    // This suite validates dialogue/slot lifecycle, not the taxi FSM adapter.
+    // Give the generic test action a deterministic successful dispatcher.
+    await page.evaluate(() => {
+      const dm = (window as any).__DIALOGUE_MANAGER__;
+      dm.setActionDispatcher(async (_event: any, _context: any, execution: any) => ({
+        status: 'SUCCEEDED',
+        executionId: execution.executionId,
+        attempt: execution.attempt
+      }));
+    });
     await expect(page.locator('body')).toContainText('Platform Dialogue State');
   }
 
@@ -21,7 +33,7 @@ test.describe('E2E: Strict Platform Dialogue State & Multi-Turn Slot-Filling Sui
       if (!channel) {
         throw new Error('VoiceChannel production instance is not initialized on window.__VOICE_CHANNEL__');
       }
-      return channel.handleIncomingVoice(text);
+      return channel.handleIncomingVoice(text, (window as any).__VOICE_DEMO_APP__.getIdentity());
     }, phrase);
   }
 
@@ -31,7 +43,7 @@ test.describe('E2E: Strict Platform Dialogue State & Multi-Turn Slot-Filling Sui
 
     const state = await page.evaluate(() => {
       const dm = (window as any).__DIALOGUE_MANAGER__;
-      return dm ? dm.getActiveState() : null;
+      return dm ? (dm.getActiveState((window as any).__VOICE_DEMO_APP__.getIdentity()) || dm.listContexts((window as any).__VOICE_DEMO_APP__.getIdentity()).sort((a: any, b: any) => b.createdAt - a.createdAt)[0] || null) : null;
     });
 
     expect(state).not.toBeNull();
@@ -49,7 +61,7 @@ test.describe('E2E: Strict Platform Dialogue State & Multi-Turn Slot-Filling Sui
 
     const state = await page.evaluate(() => {
       const dm = (window as any).__DIALOGUE_MANAGER__;
-      return dm ? dm.getActiveState() : null;
+      return dm ? (dm.getActiveState((window as any).__VOICE_DEMO_APP__.getIdentity()) || dm.listContexts((window as any).__VOICE_DEMO_APP__.getIdentity()).sort((a: any, b: any) => b.createdAt - a.createdAt)[0] || null) : null;
     });
 
     expect(state.status).toBe('COMPLETED');
@@ -57,7 +69,7 @@ test.describe('E2E: Strict Platform Dialogue State & Multi-Turn Slot-Filling Sui
 
     const executedPayload = await page.evaluate(() => {
       const dm = (window as any).__DIALOGUE_MANAGER__;
-      const logs = dm ? dm.getExecutionLogs() : [];
+      const logs = dm ? dm.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity()) : [];
       const targetAction = logs.find((l: any) => l.intent === 'PROCESS_TEST_ACTION');
       return targetAction ? targetAction.payload : null;
     });
@@ -75,7 +87,7 @@ test.describe('E2E: Strict Platform Dialogue State & Multi-Turn Slot-Filling Sui
 
     const state = await page.evaluate(() => {
       const dm = (window as any).__DIALOGUE_MANAGER__;
-      return dm ? dm.getActiveState() : null;
+      return dm ? (dm.getActiveState((window as any).__VOICE_DEMO_APP__.getIdentity()) || dm.listContexts((window as any).__VOICE_DEMO_APP__.getIdentity()).sort((a: any, b: any) => b.createdAt - a.createdAt)[0] || null) : null;
     });
 
     expect(state.status).toBe('WAITING_FOR_SLOT');
@@ -86,7 +98,7 @@ test.describe('E2E: Strict Platform Dialogue State & Multi-Turn Slot-Filling Sui
     
     const completedState = await page.evaluate(() => {
       const dm = (window as any).__DIALOGUE_MANAGER__;
-      return dm ? dm.getActiveState() : null;
+      return dm ? (dm.getActiveState((window as any).__VOICE_DEMO_APP__.getIdentity()) || dm.listContexts((window as any).__VOICE_DEMO_APP__.getIdentity()).sort((a: any, b: any) => b.createdAt - a.createdAt)[0] || null) : null;
     });
     expect(completedState.status).toBe('COMPLETED');
   });
@@ -98,14 +110,14 @@ test.describe('E2E: Strict Platform Dialogue State & Multi-Turn Slot-Filling Sui
 
     const state = await page.evaluate(() => {
       const dm = (window as any).__DIALOGUE_MANAGER__;
-      return dm ? dm.getActiveState() : null;
+      return dm ? (dm.getActiveState((window as any).__VOICE_DEMO_APP__.getIdentity()) || dm.listContexts((window as any).__VOICE_DEMO_APP__.getIdentity()).sort((a: any, b: any) => b.createdAt - a.createdAt)[0] || null) : null;
     });
 
     expect(state.status).toBe('CANCELLED');
 
     const hasExecuted = await page.evaluate(() => {
       const dm = (window as any).__DIALOGUE_MANAGER__;
-      const logs = dm ? dm.getExecutionLogs() : [];
+      const logs = dm ? dm.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity()) : [];
       return logs.some((l: any) => l.intent === 'PROCESS_TEST_ACTION');
     });
     expect(hasExecuted).toBe(false);
@@ -120,7 +132,7 @@ test.describe('E2E: Strict Platform Dialogue State & Multi-Turn Slot-Filling Sui
 
     const state = await page.evaluate(() => {
       const dm = (window as any).__DIALOGUE_MANAGER__;
-      return dm ? dm.getActiveState() : null;
+      return dm ? (dm.getActiveState((window as any).__VOICE_DEMO_APP__.getIdentity()) || dm.listContexts((window as any).__VOICE_DEMO_APP__.getIdentity()).sort((a: any, b: any) => b.createdAt - a.createdAt)[0] || null) : null;
     });
 
     expect(state.intent).toBe('PROCESS_SALE');
@@ -134,12 +146,12 @@ test.describe('E2E: Strict Platform Dialogue State & Multi-Turn Slot-Filling Sui
 
     await page.evaluate(() => {
       const dm = (window as any).__DIALOGUE_MANAGER__;
-      if (dm) dm.triggerTimeout();
+      if (dm) dm.expireContext(dm.getActiveContextId()!, (window as any).__VOICE_DEMO_APP__.getIdentity());
     });
 
     const state = await page.evaluate(() => {
       const dm = (window as any).__DIALOGUE_MANAGER__;
-      return dm ? dm.getActiveState() : null;
+      return dm ? (dm.getActiveState((window as any).__VOICE_DEMO_APP__.getIdentity()) || dm.listContexts((window as any).__VOICE_DEMO_APP__.getIdentity()).sort((a: any, b: any) => b.createdAt - a.createdAt)[0] || null) : null;
     });
 
     expect(state.status).toBe('EXPIRED');
@@ -155,7 +167,7 @@ test.describe('E2E: Strict Platform Dialogue State & Multi-Turn Slot-Filling Sui
 
     const executionCount = await page.evaluate(() => {
       const dm = (window as any).__DIALOGUE_MANAGER__;
-      const logs = dm ? dm.getExecutionLogs() : [];
+      const logs = dm ? dm.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity()) : [];
       return logs.filter((l: any) => l.intent === 'PROCESS_TEST_ACTION').length;
     });
 

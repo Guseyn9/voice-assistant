@@ -87,7 +87,7 @@ test.describe('CONTRACT: SC-PLATFORM-001 Declarative Scenario Portability Suite'
     ]
   };
 
-  beforeEach(() => {
+  test.beforeEach(() => {
     dispatcherCalls = 0;
     dm = new DialogueStateManager({
       actionDispatcher: async (event, ctx, exec) => {
@@ -113,7 +113,7 @@ test.describe('CONTRACT: SC-PLATFORM-001 Declarative Scenario Portability Suite'
 
     const res = await vc.handleIncomingVoice('да', sessionUserA);
 
-    expect(res.status).toBe('SUCCEEDED');
+    expect(res.status).toBe('COMPLETED');
     expect(dm.getExecutionLogs(sessionUserA).length).toBe(1);
     expect(dispatcherCalls).toBe(1);
   });
@@ -155,7 +155,7 @@ test.describe('CONTRACT: SC-PLATFORM-001 Declarative Scenario Portability Suite'
 
     const res = await vc.handleIncomingVoice('confirm', sessionUserA);
 
-    expect(res.status).toBe('SUCCEEDED');
+    expect(res.status).toBe('COMPLETED');
     expect(dm.getExecutionLogs(sessionUserA).length).toBe(1);
     expect(dispatcherCalls).toBe(1);
   });
@@ -285,7 +285,7 @@ test.describe('CONTRACT: SC-PLATFORM-001 Declarative Scenario Portability Suite'
 
     const foreignConfirm = await dm.fillSlot('confirmation', 'CONFIRMED', ctx.contextId, sessionUserB);
     expect(foreignConfirm.success).toBe(false);
-    expect(foreignConfirm.error).toBe('ACCESS_DENIED');
+    expect(foreignConfirm.error).toBe('CONTEXT_ACCESS_DENIED');
   });
 
 });

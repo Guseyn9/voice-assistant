@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { fileURLToPath } from 'node:url';
 import * as fs from 'fs';
 import * as path from 'path';
 import { DialogueStateManager } from '../../../src/platform/dialogue-manager';
@@ -15,7 +16,7 @@ test.describe('CONTRACT: SC-PASS-001 Passenger Order Multi-turn Dialogue Suite',
   let dispatcherCalls: number;
 
   test.beforeAll(() => {
-    const jsonPath = path.resolve(__dirname, '../../../scenario-passenger-order.json');
+    const jsonPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../scenario-passenger-order.json');
     scenarioSet = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
   });
 
@@ -140,10 +141,11 @@ test.describe('CONTRACT: SC-PASS-001 Passenger Order Multi-turn Dialogue Suite',
 
   test('CONTRACT-09: Cancel до confirmation → status CANCELLED, zero execution', async () => {
     await vc.handleIncomingVoice('мне нужно в аэропорт', sessionPassengerA);
+    const contextId = dm.getActiveContextId()!;
     await vc.handleIncomingVoice('отсюда', sessionPassengerA);
     await vc.handleIncomingVoice('отмена', sessionPassengerA);
 
-    const ctx = dm.getContext(dm.getActiveContextId()!, sessionPassengerA);
+    const ctx = dm.getContext(contextId, sessionPassengerA);
     expect(ctx?.status).toBe('CANCELLED');
     expect(dm.getExecutionLogs(sessionPassengerA).length).toBe(0);
     expect(dispatcherCalls).toBe(0);
@@ -188,7 +190,7 @@ test.describe('CONTRACT: SC-PASS-001 Passenger Order Multi-turn Dialogue Suite',
 
     const fillRes = await dm.fillSlot('pickup', 'home', contextIdA, sessionPassengerB);
     expect(fillRes.success).toBe(false);
-    expect(fillRes.error).toBe('ACCESS_DENIED');
+    expect(fillRes.error).toBe('CONTEXT_ACCESS_DENIED');
   });
 
   test('CONTRACT-13: NO_MATCH → zero execution', async () => {

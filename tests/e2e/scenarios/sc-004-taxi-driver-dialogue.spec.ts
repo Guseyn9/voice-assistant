@@ -1,17 +1,19 @@
 import { test, expect } from '@playwright/test';
+import { fileURLToPath } from 'node:url';
 import * as path from 'path';
 
-const scenarioFilePath = path.resolve(__dirname, '../../../scenario-sc-004-taxi-driver-dialogue.json');
+const scenarioFilePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../scenario-sc-004-taxi-driver-dialogue.json');
 
 test.describe('E2E: SC-004 Taxi Driver Multi-Turn Dialogue & Real FSM Suite (Ð¢Ð—-VOICE-SC-004)', () => {
 
   async function setupApp(page: any) {
-    const appUrl = process.env.APP_URL || 'https://voice-assistant-two-olive.vercel.app';
+    const appUrl = process.env.APP_URL || 'http://localhost:3000';
     await page.goto(appUrl);
     await expect(page.locator('body')).toBeVisible();
 
     const fileInput = page.locator('input[type="file"]').first();
     await fileInput.setInputFiles(scenarioFilePath);
+    await page.evaluate(async () => { await (window as any).__SCENARIO_LOAD_PROMISE__; });
     await expect(page.locator('body')).toContainText('Taxi Driver Multi-Turn Dialogue');
   }
 
@@ -21,7 +23,7 @@ test.describe('E2E: SC-004 Taxi Driver Multi-Turn Dialogue & Real FSM Suite (Ð¢Ð
       if (!channel) {
         throw new Error('VoiceChannel production instance is not initialized on window.__VOICE_CHANNEL__');
       }
-      return channel.handleIncomingVoice(text);
+      return channel.handleIncomingVoice(text, (window as any).__VOICE_DEMO_APP__.getIdentity());
     }, phrase);
   }
 
@@ -31,7 +33,7 @@ test.describe('E2E: SC-004 Taxi Driver Multi-Turn Dialogue & Real FSM Suite (Ð¢Ð
 
     const state = await page.evaluate(() => {
       const dm = (window as any).__DIALOGUE_MANAGER__;
-      return dm ? dm.getActiveState() : null;
+      return dm ? dm.getLatestState((window as any).__VOICE_DEMO_APP__.getIdentity()) : null;
     });
 
     expect(state).not.toBeNull();
@@ -55,7 +57,7 @@ test.describe('E2E: SC-004 Taxi Driver Multi-Turn Dialogue & Real FSM Suite (Ð¢Ð
     // 3. Dialogue State COMPLETED
     const state = await page.evaluate(() => {
       const dm = (window as any).__DIALOGUE_MANAGER__;
-      return dm ? dm.getActiveState() : null;
+      return dm ? dm.getLatestState((window as any).__VOICE_DEMO_APP__.getIdentity()) : null;
     });
     expect(state.status).toBe('COMPLETED');
     expect(state.slots).toEqual({ orderId: 1001 });
@@ -63,7 +65,7 @@ test.describe('E2E: SC-004 Taxi Driver Multi-Turn Dialogue & Real FSM Suite (Ð¢Ð
     // 4. Validate Action executed in logs
     const action = await page.evaluate(() => {
       const dm = (window as any).__DIALOGUE_MANAGER__;
-      const logs = dm ? dm.getExecutionLogs() : [];
+      const logs = dm ? dm.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity()) : [];
       return logs.find((l: any) => l.intent === 'ACCEPT_ORDER');
     });
     expect(action).toBeDefined();
@@ -80,7 +82,7 @@ test.describe('E2E: SC-004 Taxi Driver Multi-Turn Dialogue & Real FSM Suite (Ð¢Ð
 
     const state = await page.evaluate(() => {
       const dm = (window as any).__DIALOGUE_MANAGER__;
-      return dm ? dm.getActiveState() : null;
+      return dm ? dm.getLatestState((window as any).__VOICE_DEMO_APP__.getIdentity()) : null;
     });
 
     expect(state.status).toBe('WAITING_FOR_SLOT');
@@ -88,7 +90,7 @@ test.describe('E2E: SC-004 Taxi Driver Multi-Turn Dialogue & Real FSM Suite (Ð¢Ð
 
     const action = await page.evaluate(() => {
       const dm = (window as any).__DIALOGUE_MANAGER__;
-      const logs = dm ? dm.getExecutionLogs() : [];
+      const logs = dm ? dm.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity()) : [];
       return logs.find((l: any) => l.intent === 'ACCEPT_ORDER');
     });
     expect(action).toBeUndefined();
@@ -101,7 +103,7 @@ test.describe('E2E: SC-004 Taxi Driver Multi-Turn Dialogue & Real FSM Suite (Ð¢Ð
 
     const state = await page.evaluate(() => {
       const dm = (window as any).__DIALOGUE_MANAGER__;
-      return dm ? dm.getActiveState() : null;
+      return dm ? dm.getLatestState((window as any).__VOICE_DEMO_APP__.getIdentity()) : null;
     });
 
     expect(state.status).toBe('CANCELLED');
@@ -110,7 +112,7 @@ test.describe('E2E: SC-004 Taxi Driver Multi-Turn Dialogue & Real FSM Suite (Ð¢Ð
 
     const hasExecuted = await page.evaluate(() => {
       const dm = (window as any).__DIALOGUE_MANAGER__;
-      const logs = dm ? dm.getExecutionLogs() : [];
+      const logs = dm ? dm.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity()) : [];
       return logs.some((l: any) => l.intent === 'ACCEPT_ORDER');
     });
     expect(hasExecuted).toBe(false);
@@ -124,7 +126,7 @@ test.describe('E2E: SC-004 Taxi Driver Multi-Turn Dialogue & Real FSM Suite (Ð¢Ð
 
     const state = await page.evaluate(() => {
       const dm = (window as any).__DIALOGUE_MANAGER__;
-      return dm ? dm.getActiveState() : null;
+      return dm ? dm.getLatestState((window as any).__VOICE_DEMO_APP__.getIdentity()) : null;
     });
 
     expect(state.intent).toBe('DRIVER_ARRIVED');
@@ -150,7 +152,7 @@ test.describe('E2E: SC-004 Taxi Driver Multi-Turn Dialogue & Real FSM Suite (Ð¢Ð
 
     const executionCount = await page.evaluate(() => {
       const dm = (window as any).__DIALOGUE_MANAGER__;
-      const logs = dm ? dm.getExecutionLogs() : [];
+      const logs = dm ? dm.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity()) : [];
       return logs.filter((l: any) => l.intent === 'ACCEPT_ORDER').length;
     });
 

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { fileURLToPath } from 'node:url';
 import * as fs from 'fs';
 import * as path from 'path';
 import { DialogueStateManager, type OfferDefinition } from '../../../src/platform/dialogue-manager';
@@ -21,7 +22,7 @@ test.describe('CONTRACT: SC-PASS-003 Multi-Step Offer Selection & Correction Sui
   ];
 
   test.beforeAll(() => {
-    const jsonPath = path.resolve(__dirname, '../../../scenario-passenger-offers.json');
+    const jsonPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../scenario-passenger-offers.json');
     scenarioSet = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
   });
 
@@ -136,11 +137,11 @@ test.describe('CONTRACT: SC-PASS-003 Multi-Step Offer Selection & Correction Sui
 
     const foreignFill = await dm.fillSlot('selectedOfferId', 'OFFER-A', ctxIdA, sessionPassengerB);
     expect(foreignFill.success).toBe(false);
-    expect(foreignFill.error).toBe('ACCESS_DENIED');
+    expect(foreignFill.error).toBe('CONTEXT_ACCESS_DENIED');
 
     const foreignConfirm = await dm.fillSlot('confirmation', 'CONFIRMED', ctxIdA, sessionPassengerB);
     expect(foreignConfirm.success).toBe(false);
-    expect(foreignConfirm.error).toBe('ACCESS_DENIED');
+    expect(foreignConfirm.error).toBe('CONTEXT_ACCESS_DENIED');
   });
 
 });

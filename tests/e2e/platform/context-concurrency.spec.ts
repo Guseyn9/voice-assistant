@@ -1,7 +1,8 @@
 import { test, expect } from '@playwright/test';
+import { fileURLToPath } from 'node:url';
 import * as path from 'path';
 
-const scenarioFilePath = path.resolve(__dirname, '../../../scenario-platform-016-context-concurrency.json');
+const scenarioFilePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../scenario-platform-016-context-concurrency.json');
 
 test.describe('E2E: PLATFORM-016 Concurrency Control Suite', () => {
 
@@ -16,6 +17,7 @@ test.describe('E2E: PLATFORM-016 Concurrency Control Suite', () => {
 
     const fileInput = page.locator('input[type="file"]').first();
     await fileInput.setInputFiles(scenarioFilePath);
+    await page.evaluate(async () => { await (window as any).__SCENARIO_LOAD_PROMISE__; });
   }
 
   test('E2E-RACE-01: Voice x Declarative System Event race deterministically serializes', async ({ page }) => {
@@ -27,7 +29,7 @@ test.describe('E2E: PLATFORM-016 Concurrency Control Suite', () => {
       const app = (window as any).__VOICE_DEMO_APP__;
       const identity = app.getIdentity();
 
-      const ctx = dm.createContext('ORDER_PAYMENT', {}, ['paymentMethod'], 'order.payment.completed', {}, identity);
+      const ctx = dm.createContext('ORDER_PAYMENT', { orderId: 1001 }, ['paymentMethod'], 'driver.order.accepted', {}, identity);
 
       const [voiceRes, sysRes] = await Promise.all([
         vc.handleIncomingVoice('картой', identity),
@@ -98,11 +100,11 @@ test.describe('E2E: PLATFORM-016 Concurrency Control Suite', () => {
       const app = (window as any).__VOICE_DEMO_APP__;
       const identity = app.getIdentity();
 
-      const ctx = dm.createContext('ORDER_PAYMENT', { paymentMethod: 'CARD' }, ['paymentMethod'], 'order.payment.completed', {}, identity);
+      const ctx = dm.createContext('ORDER_PAYMENT', { orderId: 1002, paymentMethod: 'CARD' }, ['paymentMethod'], 'driver.order.accepted', {}, identity);
       const ex = dm.createExecution(ctx, identity);
 
       const [dispRes, sysRes] = await Promise.all([
-        dm.dispatchAction(ex.executionId, { paymentMethod: 'CARD' }, identity),
+        dm.dispatchAction(ex.executionId, ex.payload, identity),
         dm.handleSystemEvent(ctx.contextId, { type: 'EXTERNAL_FINISH', targetTransition: 'COMPLETE' }, identity)
       ]);
 

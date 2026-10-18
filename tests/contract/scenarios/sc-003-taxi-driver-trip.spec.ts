@@ -1,28 +1,31 @@
 import { test, expect } from '@playwright/test';
-import * as fs from 'fs';
-import * as path from 'path';
+import { fileURLToPath } from 'node:url';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 
-const scenarioFilePath = path.resolve(__dirname, '../../../scenario-sc-003-taxi-driver-trip.json');
-const rawContent = fs.readFileSync(scenarioFilePath, 'utf-8');
-const scenarioSet = JSON.parse(rawContent);
+const scenarioFilePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../scenario-sc-003-taxi-driver-trip.json');
+const scenarioSet = JSON.parse(fs.readFileSync(scenarioFilePath, 'utf-8'));
 
 test.describe('SC-003: Taxi Driver End-to-End Trip - Contract Tests', () => {
-
-  test('CONTRACT-SC003-01: Root Schema, Version 2 and Set ID', async () => {
+  test('CONTRACT-SC003-01: Root schema and five declarative trip scenarios', () => {
     expect(scenarioSet).toBeDefined();
     expect(scenarioSet.version).toBe(2);
     expect(scenarioSet.id).toBe('scenario-set-sc-003-taxi-driver-trip');
     expect(scenarioSet.name).toBe('Taxi Driver End-to-End Trip Workflow');
     expect(Array.isArray(scenarioSet.scenarios)).toBe(true);
-    expect(scenarioSet.scenarios.length).toBe(1);
+    expect(scenarioSet.scenarios.map((scenario: any) => scenario.id)).toEqual([
+      'sc003-accept-order',
+      'sc003-arrived',
+      'sc003-start-trip',
+      'sc003-finish-trip',
+      'sc003-become-available'
+    ]);
   });
 
-  test('CONTRACT-SC003-02: End-to-End Sequential Steps & Uniform orderId 1001', async () => {
-    const sc = scenarioSet.scenarios[0];
-    expect(sc.id).toBe('sc-003-taxi-driver-trip-workflow');
-    
-    // Check emit events sequence
-    const emitEvents = sc.steps.filter((s: any) => s.kind === 'emit').map((s: any) => s.event.type);
+  test('CONTRACT-SC003-02: Scenario sequence emits the trip lifecycle with consistent order identity', () => {
+    const emitEvents = scenarioSet.scenarios.flatMap((scenario: any) =>
+      scenario.steps.filter((step: any) => step.kind === 'emit').map((step: any) => step.event.type)
+    );
     expect(emitEvents).toEqual([
       'driver.order.accepted',
       'driver.arrived',
@@ -31,14 +34,13 @@ test.describe('SC-003: Taxi Driver End-to-End Trip - Contract Tests', () => {
       'driver.available'
     ]);
 
-    // Check uniform orderId = 1001 for order steps
-    expect(sc.steps[0].event.payload.orderId).toBe(1001);
-    expect(sc.steps[2].event.payload.orderId).toBe(1001);
-    expect(sc.steps[4].event.payload.orderId).toBe(1001);
-    expect(sc.steps[6].event.payload.orderId).toBe(1001);
-
-    // Check terminal step
-    expect(sc.steps[sc.steps.length - 1].kind).toBe('end');
+    const orderEvents = scenarioSet.scenarios.flatMap((scenario: any) =>
+      scenario.steps
+        .filter((step: any) => step.kind === 'emit' && step.event.payload.orderId !== undefined)
+        .map((step: any) => step.event.payload.orderId)
+    );
+    expect(orderEvents.length).toBe(4);
+    expect(orderEvents.every((orderId: unknown) => orderId === 1001)).toBe(true);
+    expect(scenarioSet.scenarios.every((scenario: any) => scenario.steps.at(-1)?.kind === 'end')).toBe(true);
   });
-
 });

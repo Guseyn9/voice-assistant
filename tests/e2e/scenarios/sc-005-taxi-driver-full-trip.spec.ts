@@ -1,17 +1,19 @@
 import { test, expect } from '@playwright/test';
+import { fileURLToPath } from 'node:url';
 import * as path from 'path';
 
-const scenarioFilePath = path.resolve(__dirname, '../../../scenario-sc-005-taxi-driver-full-trip.json');
+const scenarioFilePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../scenario-sc-005-taxi-driver-full-trip.json');
 
 test.describe('E2E: SC-005 Taxi Driver Full Trip Workflow & Real FSM Suite (ТЗ-VOICE-SC-005)', () => {
 
   async function setupApp(page: any) {
-    const appUrl = process.env.APP_URL || 'https://voice-assistant-two-olive.vercel.app';
+    const appUrl = process.env.APP_URL || 'http://localhost:3000';
     await page.goto(appUrl);
     await expect(page.locator('body')).toBeVisible();
 
     const fileInput = page.locator('input[type="file"]').first();
     await fileInput.setInputFiles(scenarioFilePath);
+    await page.evaluate(async () => { await (window as any).__SCENARIO_LOAD_PROMISE__; });
     await expect(page.locator('body')).toContainText('Taxi Driver Full Trip');
   }
 
@@ -21,7 +23,7 @@ test.describe('E2E: SC-005 Taxi Driver Full Trip Workflow & Real FSM Suite (ТЗ
       if (!channel) {
         throw new Error('VoiceChannel production instance is not initialized on window.__VOICE_CHANNEL__');
       }
-      return channel.handleIncomingVoice(text);
+      return channel.handleIncomingVoice(text, (window as any).__VOICE_DEMO_APP__.getIdentity());
     }, phrase);
   }
 
@@ -31,7 +33,7 @@ test.describe('E2E: SC-005 Taxi Driver Full Trip Workflow & Real FSM Suite (ТЗ
 
     // 1. Incomplete "Прими заказ" -> WAITING_FOR_SLOT
     await emitVoicePhrase(page, 'Прими заказ');
-    const state = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getActiveState());
+    const state = await page.evaluate(() => (window as any).__DIALOGUE_MANAGER__.getActiveState((window as any).__VOICE_DEMO_APP__.getIdentity()));
     expect(state.status).toBe('WAITING_FOR_SLOT');
     expect(state.clarificationPrompt).toBe('Какой заказ?');
 
@@ -39,7 +41,7 @@ test.describe('E2E: SC-005 Taxi Driver Full Trip Workflow & Real FSM Suite (ТЗ
     await emitVoicePhrase(page, '1001');
     await expect(fsmLocator).toHaveText(/ORDER_ACCEPTED|Принят/i);
     const acceptAction = await page.evaluate(() => {
-      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs();
+      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity());
       return logs.find((l: any) => l.intent === 'ACCEPT_ORDER');
     });
     expect(acceptAction).toBeDefined();
@@ -49,7 +51,7 @@ test.describe('E2E: SC-005 Taxi Driver Full Trip Workflow & Real FSM Suite (ТЗ
     await emitVoicePhrase(page, 'Я приехал');
     await expect(fsmLocator).toHaveText(/DRIVER_ARRIVED|На месте/i);
     const arrivedAction = await page.evaluate(() => {
-      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs();
+      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity());
       return logs.find((l: any) => l.intent === 'DRIVER_ARRIVED');
     });
     expect(arrivedAction).toBeDefined();
@@ -59,7 +61,7 @@ test.describe('E2E: SC-005 Taxi Driver Full Trip Workflow & Real FSM Suite (ТЗ
     await emitVoicePhrase(page, 'Начать поездку');
     await expect(fsmLocator).toHaveText(/IN_TRIP|В пути/i);
     const startAction = await page.evaluate(() => {
-      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs();
+      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity());
       return logs.find((l: any) => l.intent === 'START_TRIP');
     });
     expect(startAction).toBeDefined();
@@ -69,7 +71,7 @@ test.describe('E2E: SC-005 Taxi Driver Full Trip Workflow & Real FSM Suite (ТЗ
     await emitVoicePhrase(page, 'Завершить поездку');
     await expect(fsmLocator).toHaveText(/TRIP_FINISHED|Завершена/i);
     const finishAction = await page.evaluate(() => {
-      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs();
+      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity());
       return logs.find((l: any) => l.intent === 'FINISH_TRIP');
     });
     expect(finishAction).toBeDefined();
@@ -79,7 +81,7 @@ test.describe('E2E: SC-005 Taxi Driver Full Trip Workflow & Real FSM Suite (ТЗ
     await emitVoicePhrase(page, 'Готов к следующему заказу');
     await expect(fsmLocator).toHaveText(/AVAILABLE|Свободен/i);
     const availableAction = await page.evaluate(() => {
-      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs();
+      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity());
       return logs.find((l: any) => l.intent === 'DRIVER_AVAILABLE');
     });
     expect(availableAction).toBeDefined();
@@ -95,8 +97,8 @@ test.describe('E2E: SC-005 Taxi Driver Full Trip Workflow & Real FSM Suite (ТЗ
     await expect(fsmLocator).toHaveText(/AVAILABLE|Свободен/i);
 
     const executed = await page.evaluate(() => {
-      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs();
-      return logs.some((l: any) => l.intent === 'DRIVER_ARRIVED');
+      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity());
+      return logs.some((l: any) => l.intent === 'DRIVER_ARRIVED' && l.status === 'SUCCEEDED');
     });
     expect(executed).toBe(false);
   });
@@ -115,8 +117,8 @@ test.describe('E2E: SC-005 Taxi Driver Full Trip Workflow & Real FSM Suite (ТЗ
 
     // HIGH-3 FIX: Assert zero execution of START_TRIP
     const illegalStarts = await page.evaluate(() => {
-      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs();
-      return logs.filter((l: any) => l.intent === 'START_TRIP');
+      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity());
+      return logs.filter((l: any) => l.intent === 'START_TRIP' && l.status === 'SUCCEEDED');
     });
     expect(illegalStarts).toHaveLength(0);
   });
@@ -136,8 +138,8 @@ test.describe('E2E: SC-005 Taxi Driver Full Trip Workflow & Real FSM Suite (ТЗ
 
     // HIGH-3 FIX: Assert zero execution of FINISH_TRIP
     const illegalFinishes = await page.evaluate(() => {
-      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs();
-      return logs.filter((l: any) => l.intent === 'FINISH_TRIP');
+      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity());
+      return logs.filter((l: any) => l.intent === 'FINISH_TRIP' && l.status === 'SUCCEEDED');
     });
     expect(illegalFinishes).toHaveLength(0);
   });
@@ -163,7 +165,7 @@ test.describe('E2E: SC-005 Taxi Driver Full Trip Workflow & Real FSM Suite (ТЗ
 
     // HIGH-4 FIX: Bind strictly to intent + orderId: 1001
     const executionCount = await page.evaluate(() => {
-      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs();
+      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity());
       return logs.filter((l: any) => l.intent === 'ACCEPT_ORDER' && l.payload?.orderId === 1001).length;
     });
 
@@ -179,7 +181,7 @@ test.describe('E2E: SC-005 Taxi Driver Full Trip Workflow & Real FSM Suite (ТЗ
 
     // HIGH-4 FIX: Bind strictly to intent + orderId: 1001
     const executionCount = await page.evaluate(() => {
-      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs();
+      const logs = (window as any).__DIALOGUE_MANAGER__.getExecutionLogs((window as any).__VOICE_DEMO_APP__.getIdentity());
       return logs.filter((l: any) => l.intent === 'DRIVER_ARRIVED' && l.payload?.orderId === 1001).length;
     });
 
