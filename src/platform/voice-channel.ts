@@ -136,11 +136,11 @@ export class VoiceChannel {
   ): Record<string, any> {
     const resolveValue = (value: any): any => {
       if (typeof value === 'string') {
-        const exact = value.match(/^\\{\\{\\s*slots\\.([A-Za-z_][A-Za-z0-9_]*)\\s*\\}\\}$/);
+        const exact = value.match(/^\{\{\s*slots\.([A-Za-z_][A-Za-z0-9_]*)\s*\}\}$/);
         if (exact) {
           return Object.prototype.hasOwnProperty.call(slots, exact[1]) ? slots[exact[1]] : value;
         }
-        return value.replace(/\\{\\{\\s*slots\\.([A-Za-z_][A-Za-z0-9_]*)\\s*\\}\\}/g, (token, key: string) =>
+        return value.replace(/\{\{\s*slots\.([A-Za-z_][A-Za-z0-9_]*)\s*\}\}/g, (token, key: string) =>
           Object.prototype.hasOwnProperty.call(slots, key) ? String(slots[key]) : token
         );
       }
