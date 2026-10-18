@@ -41,6 +41,46 @@
           "kind": "end"
         }
       ]
+    },
+    {
+      "id": "sc004-driver-arrived-dialogue",
+      "name": "Прибытие к пассажиру с уточнением номера заказа",
+      "activation": {
+        "type": "voice",
+        "value": "voice.arrived"
+      },
+      "expectedPhrase": "Я приехал",
+      "aliases": [
+        "Прибыл",
+        "На месте"
+      ],
+      "intent": "DRIVER_ARRIVED",
+      "requiredSlots": [
+        "orderId"
+      ],
+      "slotExtractors": {
+        "orderId": {
+          "type": "integer",
+          "pattern": "\\\\b\\\\d+\\\\b"
+        }
+      },
+      "clarificationPrompts": {
+        "orderId": "К какому заказу вы приехали?"
+      },
+      "steps": [
+        {
+          "kind": "emit",
+          "event": {
+            "type": "driver.arrived",
+            "payload": {
+              "orderId": "{{slots.orderId}}"
+            }
+          }
+        },
+        {
+          "kind": "end"
+        }
+      ]
     }
   ]
 }
