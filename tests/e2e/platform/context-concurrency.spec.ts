@@ -104,7 +104,7 @@ test.describe('E2E: PLATFORM-016 Concurrency Control Suite', () => {
       const ex = dm.createExecution(ctx, identity);
 
       const [dispRes, sysRes] = await Promise.all([
-        dm.dispatchAction(ex.executionId, { paymentMethod: 'CARD' }, identity),
+        dm.dispatchAction(ex.executionId, ex.payload, identity),
         dm.handleSystemEvent(ctx.contextId, { type: 'EXTERNAL_FINISH', targetTransition: 'COMPLETE' }, identity)
       ]);
 
