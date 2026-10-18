@@ -22,6 +22,22 @@ test.describe('E2E: PLATFORM-014 Intent Resolution & Slot Ambiguity Suite', () =
       return (window as any).__SCENARIO_ENGINE__.getActiveScenarioSetId();
     });
     expect(activeSetId).toBe('scenario-set-platform-014-intent-slot-resolution');
+
+    // This suite validates intent/slot resolution, not the driver's FSM.
+    // Use a deterministic successful dispatcher so generic scenario events
+    // (for example order.express.created and deliver.done) are not rejected
+    // by the production taxi lifecycle boundary.
+    await page.evaluate(() => {
+      const dm = (window as any).__DIALOGUE_MANAGER__;
+      if (!dm || typeof dm.setActionDispatcher !== 'function') {
+        throw new Error('DialogueManager action dispatcher is not available');
+      }
+      dm.setActionDispatcher(async (_event: any, _context: any, execution: any) => ({
+        status: 'SUCCEEDED',
+        executionId: execution.executionId,
+        attempt: execution.attempt
+      }));
+    });
   }
 
   async function emitVoice(page: any, phrase: string, identity: { ownerId: string; sessionId: string }) {
