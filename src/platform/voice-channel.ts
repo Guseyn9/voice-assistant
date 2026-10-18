@@ -782,7 +782,7 @@ export class VoiceChannel {
             activeWaiting = [explicitlySelectsAnotherContext];
           } else {
             const normalize = (value: string) =>
-              value.replace(/^voice\\./i, '').replace(/[-_]/g, ' ').toLowerCase().trim().replace(/\\s+/g, ' ');
+              value.replace(/^voice\./i, '').replace(/[-_]/g, ' ').toLowerCase().trim().replace(/\s+/g, ' ');
             const triggers = [
               scenario?.activation?.value,
               scenario?.expectedPhrase,
