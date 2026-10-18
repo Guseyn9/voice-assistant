@@ -18,6 +18,18 @@ test.describe('E2E: SC-PASS-002 Canonical Multi-Offer Dialogue Suite', () => {
     const fileInput = page.locator('input[type="file"]').first();
     await fileInput.setInputFiles(scenarioFilePath);
     await page.evaluate(async () => { await (window as any).__SCENARIO_LOAD_PROMISE__; });
+    // The browser demo has no passenger backend attached. Keep the production
+    // VoiceChannel/DialogueStateManager real and provide a strict boundary adapter
+    // for this domain event so the test verifies routing, slots and payload end-to-end.
+    await page.evaluate(() => {
+      const dm = (window as any).__DIALOGUE_MANAGER__;
+      dm.setActionDispatcher(async (event: any, _context: any, execution: any) => ({
+        status: event.type === 'passenger.offer.selected' ? 'SUCCEEDED' : 'FAILED',
+        ...(event.type === 'passenger.offer.selected' ? {} : { errorCode: 'UNSUPPORTED_TEST_EVENT' }),
+        executionId: execution.executionId,
+        attempt: execution.attempt
+      }));
+    });
 
     const result = await page.evaluate(async () => {
       const vc = (window as any).__VOICE_CHANNEL__;
@@ -110,6 +122,7 @@ test.describe('E2E: SC-PASS-002 Canonical Multi-Offer Dialogue Suite', () => {
     expect(result.finalLogsCount).toBe(1);
     expect(result.execution).not.toBeNull();
     expect(result.execution.status).toBe('SUCCEEDED');
+    expect(result.execution.event.type).toBe('passenger.offer.selected');
     expect(result.execution.payload.orderId).toBe(5001);
     expect(result.execution.payload.selectedOfferId).toBe('OFFER-B');
     expect(result.finalCtx?.status).toBe('COMPLETED');
