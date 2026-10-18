@@ -969,6 +969,9 @@ export class VoiceChannel {
                 const eventPayload = this.resolveEventPayload(scenario.steps?.find(st => st.kind === 'emit')?.event?.payload || {}, updated.slots);
                 const exec = this.dialogueManager.createExecution(updated, identity, undefined, eventPayload);
                 const dispatchRes = await this.dialogueManager.dispatchAction(exec.executionId, exec.payload, identity);
+                if (dispatchRes.status === 'SUCCEEDED') {
+                  this.explicitContextSelections.set(sessionKey, updated.contextId);
+                }
                 return {
                   status: dispatchRes.status === 'SUCCEEDED' ? 'COMPLETED' : dispatchRes.status,
                   intent: updated.intent,
@@ -1016,6 +1019,9 @@ export class VoiceChannel {
             const eventPayload = this.resolveEventPayload(scenario.steps?.find(st => st.kind === 'emit')?.event?.payload || {}, currentCtx.slots);
             const execution = this.dialogueManager.createExecution(currentCtx, identity, undefined, eventPayload);
             const dispatchResult = await this.dialogueManager.dispatchAction(execution.executionId, execution.payload, identity);
+            if (dispatchResult.status === 'SUCCEEDED') {
+              this.explicitContextSelections.set(sessionKey, currentCtx.contextId);
+            }
             return {
               status: dispatchResult.status === 'SUCCEEDED' ? 'COMPLETED' : dispatchResult.status,
               intent: currentCtx.intent,
@@ -1208,6 +1214,9 @@ export class VoiceChannel {
         const eventPayload = this.resolveEventPayload(sc.steps?.find(st => st.kind === 'emit')?.event?.payload || {}, ctx.slots);
         const exec = this.dialogueManager.createExecution(ctx, identity, undefined, eventPayload);
         const dispatchRes = await this.dialogueManager.dispatchAction(exec.executionId, exec.payload, identity);
+        if (dispatchRes.status === 'SUCCEEDED') {
+          this.explicitContextSelections.set(sessionKey, ctx.contextId);
+        }
         return {
           status: dispatchRes.status === 'SUCCEEDED' ? 'COMPLETED' : dispatchRes.status,
           intent: ctx.intent,
