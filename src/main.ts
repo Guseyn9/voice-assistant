@@ -18,5 +18,9 @@ if (import.meta.env.DEV && typeof window !== 'undefined' &&
 const sessionIdentity = getAuthenticatedSessionIdentity();
 const runtime = bootstrap(rootProductionDispatcher);
 (runtime as any).platformExecutionBoundary = platformExecutionBoundary;
+if (typeof window !== 'undefined') {
+  // The declarative scenario runner and the voice runtime share the same production FSM boundary.
+  (window as any).__PLATFORM_EXECUTION_BOUNDARY__ = platformExecutionBoundary;
+}
 const root = document.querySelector<HTMLElement>("#app") || document.body;
 mountApp(root, runtime, sessionIdentity);
