@@ -175,12 +175,7 @@ export class DialogueStateManager {
   public getLatestState(identity: SessionIdentity): DialogueContext | null {
     const active = this.getActiveState(identity);
     if (active) return active;
-    const ctx = this.listContexts(identity).sort((a, b) => {
-      const aLive = !['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(a.status);
-      const bLive = !['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(b.status);
-      if (aLive !== bLive) return aLive ? -1 : 1;
-      return b.updatedAt - a.updatedAt;
-    })[0];
+    const ctx = this.listContexts(identity).sort((a, b) => b.updatedAt - a.updatedAt)[0];
     return ctx || null;
   }
 
