@@ -781,6 +781,25 @@ export class VoiceChannel {
             this.explicitContextSelections.set(sessionKey, explicitlySelectsAnotherContext.contextId);
             activeWaiting = [explicitlySelectsAnotherContext];
           } else {
+            const slotTargetContexts = extracted.status === 'RESOLVED'
+              ? activeWaiting.filter(context => Object.entries(extracted.slots).some(([slotName, value]) =>
+                  context.missingSlots.includes(slotName) && previouslySelected.slots[slotName] !== value
+                ))
+              : [];
+            if (slotTargetContexts.length === 1) {
+              this.explicitContextSelections.set(sessionKey, slotTargetContexts[0].contextId);
+              activeWaiting = [slotTargetContexts[0]];
+            } else if (slotTargetContexts.length > 1) {
+              const labels = slotTargetContexts.map(context => {
+                const orderId = context.slots.orderId ?? context.slots.order_id;
+                return orderId !== undefined ? `заказ ${orderId}` : context.intent;
+              });
+              return {
+                status: 'AMBIGUOUS_CONTEXT',
+                candidateContextIds: slotTargetContexts.map(context => context.contextId),
+                clarificationPrompt: `Уточните, пожалуйста, к какому заказу относится ответ: ${labels.join(' или ')}`
+              };
+            } else {
             const normalize = (value: string) =>
               value.replace(/^voice\./i, '').replace(/[-_]/g, ' ').toLowerCase().trim().replace(/\s+/g, ' ');
             const nextScenario = intentRes.status === 'RESOLVED' ? intentRes.scenario : undefined;
@@ -819,6 +838,7 @@ export class VoiceChannel {
                 missingSlots: previouslySelected.missingSlots,
                 context: previouslySelected
               };
+            }
             }
           }
         } else {
