@@ -7,57 +7,148 @@
     {
       "id": "sc005-step01-accept-order",
       "name": "1. Принятие заказа с дозапросом orderId",
-      "activation": { "type": "voice", "value": "voice.accept-order" },
+      "activation": {
+        "type": "voice",
+        "value": "voice.accept-order"
+      },
       "intent": "ACCEPT_ORDER",
-      "requiredSlots": ["orderId"],
-      "clarificationPrompts": { "orderId": "Какой заказ?" },
+      "requiredSlots": [
+        "orderId"
+      ],
+      "clarificationPrompts": {
+        "orderId": "Какой заказ?"
+      },
       "steps": [
-        { "kind": "emit", "event": { "type": "driver.order.accepted", "payload": { "orderId": "{{slots.orderId}}" } } },
-        { "kind": "end" }
+        {
+          "kind": "emit",
+          "event": {
+            "type": "driver.order.accepted",
+            "payload": {
+              "orderId": "{{slots.orderId}}"
+            }
+          }
+        },
+        {
+          "kind": "end"
+        }
+      ],
+      "aliases": [
+        "прими заказ",
+        "принять заказ"
       ]
     },
     {
       "id": "sc005-step02-arrived",
       "name": "2. Сообщение о прибытии",
-      "activation": { "type": "voice", "value": "voice.arrived" },
+      "activation": {
+        "type": "voice",
+        "value": "voice.arrived"
+      },
       "intent": "DRIVER_ARRIVED",
       "requiredSlots": [],
       "steps": [
-        { "kind": "emit", "event": { "type": "driver.arrived", "payload": { "orderId": 1001 } } },
-        { "kind": "end" }
+        {
+          "kind": "emit",
+          "event": {
+            "type": "driver.arrived",
+            "payload": {
+              "orderId": 1001
+            }
+          }
+        },
+        {
+          "kind": "end"
+        }
+      ],
+      "aliases": [
+        "я приехал",
+        "прибыл",
+        "на месте"
       ]
     },
     {
       "id": "sc005-step03-start-trip",
       "name": "3. Начало поездки",
-      "activation": { "type": "voice", "value": "voice.start-trip" },
+      "activation": {
+        "type": "voice",
+        "value": "voice.start-trip"
+      },
       "intent": "START_TRIP",
       "requiredSlots": [],
       "steps": [
-        { "kind": "emit", "event": { "type": "driver.trip.started", "payload": { "orderId": 1001 } } },
-        { "kind": "end" }
+        {
+          "kind": "emit",
+          "event": {
+            "type": "driver.trip.started",
+            "payload": {
+              "orderId": 1001
+            }
+          }
+        },
+        {
+          "kind": "end"
+        }
+      ],
+      "aliases": [
+        "начать поездку",
+        "поехали"
       ]
     },
     {
       "id": "sc005-step04-finish-trip",
       "name": "4. Завершение поездки",
-      "activation": { "type": "voice", "value": "voice.finish-trip" },
+      "activation": {
+        "type": "voice",
+        "value": "voice.finish-trip"
+      },
       "intent": "FINISH_TRIP",
       "requiredSlots": [],
       "steps": [
-        { "kind": "emit", "event": { "type": "driver.trip.finished", "payload": { "orderId": 1001, "payment": "cash" } } },
-        { "kind": "end" }
+        {
+          "kind": "emit",
+          "event": {
+            "type": "driver.trip.finished",
+            "payload": {
+              "orderId": 1001,
+              "payment": "cash"
+            }
+          }
+        },
+        {
+          "kind": "end"
+        }
+      ],
+      "aliases": [
+        "завершить поездку",
+        "закончить поездку"
       ]
     },
     {
       "id": "sc005-step05-available",
       "name": "5. Возврат в статус готовности",
-      "activation": { "type": "voice", "value": "voice.available" },
+      "activation": {
+        "type": "voice",
+        "value": "voice.available"
+      },
       "intent": "DRIVER_AVAILABLE",
       "requiredSlots": [],
       "steps": [
-        { "kind": "emit", "event": { "type": "driver.available", "payload": { "status": "available" } } },
-        { "kind": "end" }
+        {
+          "kind": "emit",
+          "event": {
+            "type": "driver.available",
+            "payload": {
+              "status": "available"
+            }
+          }
+        },
+        {
+          "kind": "end"
+        }
+      ],
+      "aliases": [
+        "готов к следующему заказу",
+        "свободен"
       ]
     }
   ]
