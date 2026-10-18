@@ -1,4 +1,8 @@
 import { test, expect } from '@playwright/test';
+import { fileURLToPath } from 'node:url';
+import * as path from 'node:path';
+
+const scenarioFilePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../scenario-platform-015-action-dispatch-reliability.json');
 
 test.describe('E2E: PLATFORM-015 Production Action Dispatch Reliability Suite', () => {
 
@@ -9,8 +13,16 @@ test.describe('E2E: PLATFORM-015 Production Action Dispatch Reliability Suite', 
       (window as any).__AUTH_SESSION_ID__ = 'verified-session-001';
     });
 
-    await page.goto('http://localhost:3000');
+    await page.goto(process.env.APP_URL || 'http://localhost:3000');
     await page.waitForSelector('#voice-app-ready', { timeout: 10000 });
+
+    // Load the declared scenario before exercising the real VoiceChannel.
+    const fileInput = page.locator('input[type="file"]').first();
+    await fileInput.setInputFiles(scenarioFilePath);
+    await page.evaluate(async () => { await (window as any).__SCENARIO_LOAD_PROMISE__; });
+
+    const activeSetId = await page.evaluate(() => (window as any).__SCENARIO_ENGINE__.getActiveScenarioSetId());
+    expect(activeSetId).toBe('scenario-set-platform-015-action-dispatch-reliability');
 
     const result = await page.evaluate(async () => {
       const vc = (window as any).__VOICE_CHANNEL__;
