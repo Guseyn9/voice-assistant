@@ -21,7 +21,7 @@
       "slotExtractors": {
         "orderId": {
           "type": "integer",
-          "pattern": "\\b\\\\d+\\b"
+          "pattern": "\\b\\d+\\b"
         }
       },
       "clarificationPrompts": {
