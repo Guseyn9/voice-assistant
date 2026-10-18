@@ -7,7 +7,7 @@ const scenarioFilePath = path.resolve(path.dirname(fileURLToPath(import.meta.url
 test.describe('SC-002: Taxi Driver Standard Trip - Runtime E2E Suite', () => {
 
   test.beforeEach(async ({ page }) => {
-    const appUrl = process.env.APP_URL || 'https://voice-assistant-two-olive.vercel.app';
+    const appUrl = process.env.APP_URL || 'http://localhost:3000';
     await page.goto(appUrl);
     await expect(page.locator('body')).toBeVisible();
 
