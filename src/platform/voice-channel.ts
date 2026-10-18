@@ -733,8 +733,41 @@ export class VoiceChannel {
     const selectedContextId = this.explicitContextSelections.get(sessionKey);
     if (selectedContextId) {
       const selected = activeWaiting.find(context => context.contextId === selectedContextId);
-      if (selected) activeWaiting = [selected];
-      else this.explicitContextSelections.delete(sessionKey);
+      if (selected) {
+        activeWaiting = [selected];
+      } else {
+        const previouslySelected = this.dialogueManager.getContext(selectedContextId, identity);
+        if (previouslySelected && ['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(previouslySelected.status)) {
+          const scenario = (previouslySelected.scenarioId
+            ? this.scenarioRegistry.find(s => s.id === previouslySelected.scenarioId)
+            : undefined) || this.getDeterministicScenarioForIntent(previouslySelected.intent);
+          const extracted = scenario?.slotExtractors
+            ? this.extractSlotsDeterministically(text, scenario.slotExtractors, scenario.id)
+            : { status: 'NO_MATCH' as const };
+          const explicitlySelectsAnotherContext = extracted.status === 'RESOLVED'
+            ? activeWaiting.find(context => Object.entries(extracted.slots).some(([slotName, value]) =>
+                context.slots[slotName] === value && previouslySelected.slots[slotName] !== value
+              ))
+            : undefined;
+          if (explicitlySelectsAnotherContext) {
+            this.explicitContextSelections.set(sessionKey, explicitlySelectsAnotherContext.contextId);
+            activeWaiting = [explicitlySelectsAnotherContext];
+          } else {
+            // Keep a terminal selection sticky for duplicate slot values; never
+            // leak a repeated value into another order.
+            return {
+              status: previouslySelected.status,
+              contextId: previouslySelected.contextId,
+              intent: previouslySelected.intent,
+              slots: previouslySelected.slots,
+              missingSlots: previouslySelected.missingSlots,
+              context: previouslySelected
+            };
+          }
+        } else {
+          this.explicitContextSelections.delete(sessionKey);
+        }
+      }
     }
 
     // A repeated explicit activation with a different entity (for example,
