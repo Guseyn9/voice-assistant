@@ -12,7 +12,10 @@
         "value": "voice.accept-order"
       },
       "intent": "ACCEPT_ORDER",
-      "requiredSlots": ["orderId", "payment"],
+      "requiredSlots": [
+        "orderId",
+        "payment"
+      ],
       "clarificationPrompts": {
         "orderId": "Какой заказ?",
         "payment": "Какой способ оплаты?"
@@ -31,6 +34,10 @@
         {
           "kind": "end"
         }
+      ],
+      "aliases": [
+        "прими заказ",
+        "принять заказ"
       ]
     }
   ]
