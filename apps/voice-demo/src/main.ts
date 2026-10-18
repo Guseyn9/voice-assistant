@@ -61,7 +61,11 @@ export class PlatformFsmExecutionBoundary {
     const orderId = Number.isFinite(orderIdFromPayload) && Number(orderIdFromPayload) > 0
       ? Number(orderIdFromPayload)
       : this.currentOrderId;
-    const currentStatus = orderId ? (this.activeOrders.get(orderId)?.status || this.driverStatus) : this.driverStatus;
+    // Order lifecycle is scoped to orderId. A different active order must not
+    // inherit the driver's aggregate status and block an independent acceptance.
+    const currentStatus = orderId
+      ? (this.activeOrders.get(orderId)?.status ?? 'AVAILABLE')
+      : this.driverStatus;
 
     const transitions: Record<string, { from: string[]; to: string; requiresOrder: boolean }> = {
       'driver.order.accepted': { from: ['AVAILABLE', 'TRIP_FINISHED', 'DISPATCHED'], to: 'ORDER_ACCEPTED', requiresOrder: true },
