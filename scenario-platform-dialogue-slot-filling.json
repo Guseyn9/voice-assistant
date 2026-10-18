@@ -11,22 +11,37 @@
         "type": "voice",
         "value": "voice.process-test-action"
       },
-      "aliases": ["обработай яблоки"],
+      "aliases": [
+        "обработай яблоки"
+      ],
       "intent": "PROCESS_TEST_ACTION",
-      "requiredSlots": ["item", "quantity"],
+      "requiredSlots": [
+        "item",
+        "quantity"
+      ],
       "slotExtractors": {
         "item": {
           "type": "enum",
           "mapping": {
-            "apples": ["яблоки", "яблок", "яблоко"]
+            "apples": [
+              "яблоки",
+              "яблок",
+              "яблоко"
+            ]
           },
           "priority": 100
         },
         "quantity": {
           "type": "integer",
           "rules": [
-            { "pattern": "\\bпять\\b", "value": 5 },
-            { "pattern": "\\b5\\b", "value": 5 }
+            {
+              "pattern": "\\bпять\\b",
+              "value": 5
+            },
+            {
+              "pattern": "\\b5\\b",
+              "value": 5
+            }
           ],
           "priority": 100
         }
@@ -39,6 +54,62 @@
           "kind": "emit",
           "event": {
             "type": "platform.test_action.processed",
+            "payload": {
+              "item": "{{slots.item}}",
+              "quantity": "{{slots.quantity}}"
+            }
+          }
+        },
+        {
+          "kind": "end"
+        }
+      ]
+    },
+    {
+      "id": "sc-dialogue-process-sale",
+      "name": "Продажа тестового товара",
+      "aliases": [
+        "продай помидоры"
+      ],
+      "intent": "PROCESS_SALE",
+      "requiredSlots": [
+        "item",
+        "quantity"
+      ],
+      "slotExtractors": {
+        "item": {
+          "type": "enum",
+          "mapping": {
+            "tomatoes": [
+              "помидоры",
+              "помидор"
+            ]
+          },
+          "priority": 100
+        },
+        "quantity": {
+          "type": "integer",
+          "rules": [
+            {
+              "pattern": "\\\\bпять\\\\b",
+              "value": 5
+            },
+            {
+              "pattern": "\\\\b5\\\\b",
+              "value": 5
+            }
+          ],
+          "priority": 100
+        }
+      },
+      "clarificationPrompts": {
+        "quantity": "Сколько?"
+      },
+      "steps": [
+        {
+          "kind": "emit",
+          "event": {
+            "type": "platform.test_sale.completed",
             "payload": {
               "item": "{{slots.item}}",
               "quantity": "{{slots.quantity}}"
