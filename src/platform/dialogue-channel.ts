@@ -66,7 +66,8 @@ export class DialogueEngine {
 
   public async processInput(
     input: DialogueInput,
-    identity: SessionIdentity
+    identity: SessionIdentity,
+    explicitScenario?: ScenarioDefinition
   ): Promise<DialogueEngineResult> {
     const inputModality: DialogueModality = input.modality || (input.channel as DialogueModality) || 'text';
     let rawText = '';
@@ -80,13 +81,14 @@ export class DialogueEngine {
     }
 
     // 1. Scenario Resolution & Binding Layer
-    let activeScenario: ScenarioDefinition | undefined;
+    let activeScenario = explicitScenario;
     let ctx = this.dm.getActiveState(identity);
 
     if (!activeScenario) {
       if (ctx && ctx.scenarioId) {
         // Rule A: Existing context drives the scenario
-        activeScenario = this.vc.getScenarioById(ctx.scenarioId);
+        activeScenario = this.vc.getScenarioById(ctx.scenarioId)
+          || this.vc.getDeterministicScenarioForIntent(ctx.intent);
       } else {
         // Rule B: Button without existing context cannot resolve intent
         if (inputModality === 'button') {
