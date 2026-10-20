@@ -259,9 +259,19 @@ export class VoiceChannel {
         .filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
       return triggers.some(trigger => normalizeIntentText(trigger) === text);
     });
-    if (exactMatches.length === 1) {
-      const sc = exactMatches[0];
-      return { status: 'RESOLVED', scenarioId: sc.id, intent: sc.intent, scenario: sc };
+    if (exactMatches.length > 0) {
+      const maxPriority = Math.max(...exactMatches.map(sc => sc.priority ?? 0));
+      const highestExactMatches = exactMatches.filter(sc => (sc.priority ?? 0) === maxPriority);
+      if (highestExactMatches.length === 1) {
+        const sc = highestExactMatches[0];
+        return { status: 'RESOLVED', scenarioId: sc.id, intent: sc.intent, scenario: sc };
+      }
+      return {
+        status: 'AMBIGUOUS_INTENT',
+        candidateScenarioIds: highestExactMatches.map(sc => sc.id),
+        candidateIntents: highestExactMatches.map(sc => sc.intent),
+        clarificationPrompt: highestExactMatches[0].ambiguityPrompt?.template
+      };
     }
 
     const matchingScenarios: ScenarioDefinition[] = [];
