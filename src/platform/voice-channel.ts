@@ -266,7 +266,7 @@ export class VoiceChannel {
       if (Array.isArray(sc.aliases)) triggers.push(...sc.aliases);
 
       const matches = triggers.some(trig => {
-        const clean = trig.replace(/^voice\./, '').replace(/[-_]/g, ' ').toLowerCase().trim();
+        const clean = normalizeIntentText(trig);
         // A user may provide only the leading part of a multi-word trigger. Keep it
         // as a candidate for ambiguity, but do not let a partially matched information
         // query steal an exact selection phrase such as "второй".
