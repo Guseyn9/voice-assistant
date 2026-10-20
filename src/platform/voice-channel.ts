@@ -247,11 +247,27 @@ export class VoiceChannel {
   }
 
   public resolveIntent(phrase: string): IntentResolutionResult {
-    const text = phrase.trim().toLowerCase();
+    const normalizeIntentText = (value: string) =>
+      value.replace(/^voice\\./i, '').replace(/[-_]/g, ' ').toLocaleLowerCase().trim()
+        .replace(/[.!?؟،,;:]+$/gu, '').replace(/\\s+/g, ' ');
+    const text = normalizeIntentText(phrase);
+    const activeScenarios = this.scenarioRegistry.filter(scenario => this.activeScenarioIds.has(scenario.id));
+    // Prefer an exact normalized phrase before permissive partial matching. This
+    // prevents a complete seller command from being shadowed by incidental words.
+    const exactMatches = activeScenarios.filter(sc => {
+      const triggers = [sc.activation?.value, sc.expectedPhrase, ...(sc.triggerPhrases || []), ...(sc.aliases || [])]
+        .filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
+      return triggers.some(trigger => normalizeIntentText(trigger) === text);
+    });
+    if (exactMatches.length === 1) {
+      const sc = exactMatches[0];
+      return { status: 'RESOLVED', scenarioId: sc.id, intent: sc.intent, scenario: sc };
+    }
+
     const matchingScenarios: ScenarioDefinition[] = [];
     const fullyMatchedScenarioIds = new Set<string>();
 
-    for (const sc of this.scenarioRegistry.filter(scenario => this.activeScenarioIds.has(scenario.id))) {
+    for (const sc of activeScenarios) {
       const triggers: string[] = [];
       if (sc.activation?.value) triggers.push(sc.activation.value);
       if (sc.expectedPhrase) triggers.push(sc.expectedPhrase);
