@@ -1,5 +1,5 @@
 import { DialogueStateManager, type SessionIdentity } from './dialogue-manager';
-import { VoiceChannel } from './voice-channel';
+import { VoiceChannel, type ScenarioDefinition } from './voice-channel';
 import {
   DialogueEngine,
   type DialogueInput,
@@ -56,7 +56,8 @@ export class TelegramDialogueAdapter {
 
   public async handleMessage(
     input: TelegramInputMessage,
-    identity: SessionIdentity
+    identity: SessionIdentity,
+    activeScenario?: ScenarioDefinition
   ): Promise<DialogueAdapterResult> {
     const dm = this.engine.getDialogueManager();
     const activeCtxBefore = dm.getActiveState(identity);
@@ -74,7 +75,7 @@ export class TelegramDialogueAdapter {
       } : undefined
     };
 
-    const res = await this.engine.processInput(dialogueInput, identity);
+    const res = await this.engine.processInput(dialogueInput, identity, activeScenario);
 
     const activeCtxAfter = dm.getActiveState(identity);
     const newState = activeCtxAfter ? { ...activeCtxAfter.slots } : (res.slots || {});
@@ -90,7 +91,7 @@ export class TelegramDialogueAdapter {
       channel: input.channel,
       raw_input: input.raw_input || null,
       transcript: input.transcript || null,
-      intent: activeCtxAfter?.intent || activeCtxBefore?.intent || null,
+      intent: activeCtxAfter?.intent || activeScenario?.intent || null,
       extracted_slots: extractedSlots,
       previous_state: prevState,
       new_state: newState,
@@ -99,7 +100,7 @@ export class TelegramDialogueAdapter {
     };
 
     // The Telegram-facing order contract retains its established terminal status.
-    return res.status === 'CONFIRMED' && (activeCtxAfter?.intent || activeCtxBefore?.intent) === 'ORDER_NANNY'
+    return res.status === 'CONFIRMED' && (activeCtxAfter?.intent || activeScenario?.intent || activeCtxBefore?.intent) === 'ORDER_NANNY'
       ? { ...res, status: 'ORDER_CONFIRMED' }
       : res;
   }
