@@ -10,11 +10,14 @@ export default defineConfig({
   retries: 0,
   reporter: [
     ['list'],
-    ['json', { outputFile: 'playwright-report-platform-012.json' }]
+    ['json', { outputFile: 'playwright-report/playwright-report-platform-012.json' }]
   ],
   use: {
     baseURL: process.env.APP_URL || 'http://localhost:3000',
-    trace: 'on-first-retry',
+    // Capture the first failing attempt too; retries are intentionally disabled.
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
   },
   webServer: {
     command: 'npm run start',
