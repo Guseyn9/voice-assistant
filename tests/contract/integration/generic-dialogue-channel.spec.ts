@@ -57,6 +57,7 @@ test.describe('CONTRACT: SC-INTEGRATION-004 Generic Dialogue Channel Contract Su
   });
 
   const getNannyScenario = () => nannyScenarioSet.scenarios[0];
+  const startScenario = (scenario: ScenarioDefinition, user: { ownerId: string; sessionId: string }) => engine.startScenario(scenario.id, user);
 
   test('GC-01: Text — Mock Channel -> DialogueInput(text) -> DialogueEngine -> DialoguePresentation', async () => {
     const sc = getNannyScenario();
@@ -73,6 +74,7 @@ test.describe('CONTRACT: SC-INTEGRATION-004 Generic Dialogue Channel Contract Su
 
   test('GC-02: Button — arbitrary slot and value filled via generic payload', async () => {
     const sc = getNannyScenario();
+    startScenario(sc, sessionUser);
     const adapter = new MockGenericChannelAdapter(engine);
 
     await adapter.send({
