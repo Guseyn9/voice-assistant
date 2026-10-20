@@ -248,8 +248,8 @@ export class VoiceChannel {
 
   public resolveIntent(phrase: string): IntentResolutionResult {
     const normalizeIntentText = (value: string) =>
-      value.replace(/^voice\\./i, '').replace(/[-_]/g, ' ').toLocaleLowerCase().trim()
-        .replace(/[.!?؟،,;:]+$/gu, '').replace(/\\s+/g, ' ');
+      value.replace(/^voice\./i, '').replace(/[-_]/g, ' ').toLocaleLowerCase().trim()
+        .replace(/[.!?؟،,;:]+$/gu, '').replace(/\s+/g, ' ');
     const text = normalizeIntentText(phrase);
     const activeScenarios = this.scenarioRegistry.filter(scenario => this.activeScenarioIds.has(scenario.id));
     // Prefer an exact normalized phrase before permissive partial matching. This
