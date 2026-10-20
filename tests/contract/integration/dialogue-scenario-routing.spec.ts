@@ -277,6 +277,25 @@ test.describe('CONTRACT: SC-INTEGRATION-005 Generic Dialogue Scenario Routing & 
     expect(ctxFollowUp?.contextId).toBe(ctxInitial?.contextId);
   });
 
+  test('SR-14: Unknown context scenarioId does not fall back to intent', async () => {
+    const invalidUser = { ownerId: 'invalid-scenario-user', sessionId: 'invalid-scenario-session' };
+    dm.createContext(
+      'ORDER_NANNY',
+      {},
+      ['date'],
+      'nanny.order.created',
+      { date: 'Когда нужна няня?' },
+      invalidUser,
+      'scenario-that-is-not-registered'
+    );
+
+    const res = await engine.processInput({ modality: 'text', raw_input: 'завтра' }, invalidUser);
+
+    expect(res.status).toBe('SCENARIO_NOT_FOUND');
+    expect(dm.getActiveState(invalidUser)?.scenarioId).toBe('scenario-that-is-not-registered');
+    expect(dm.getActiveState(invalidUser)?.slots.date).toBeUndefined();
+  });
+
   // Architectural Static Checks (AT-09 .. AT-13)
   test('AT-09: telegram-bot-adapter.ts does NOT contain resolveIntent, resolveScenario, registerScenarioSet', () => {
     const filePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../src/platform/telegram-bot-adapter.ts');
