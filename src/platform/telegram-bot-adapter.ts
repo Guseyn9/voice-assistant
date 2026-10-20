@@ -1,3 +1,4 @@
+import { type ScenarioDefinition } from './voice-channel';
 import {
   type DialoguePresentation,
   type DialoguePresentationAction,
@@ -154,7 +155,8 @@ export class TelegramBotAdapter {
 
   private async processDialogue(
     input: DialogueInput,
-    identity: SessionIdentity
+    identity: SessionIdentity,
+    scenario?: ScenarioDefinition
   ) {
     if (this.telegramDialogueAdapter) {
       const channel = (input.modality || input.channel || 'text') as 'button' | 'text' | 'voice';
@@ -167,12 +169,12 @@ export class TelegramBotAdapter {
           slotValue: input.payload.slotValue,
           action: input.payload.action
         } : undefined
-      }, identity);
+      }, identity, scenario);
     }
-    return this.dialogueEngine.processInput(input, identity);
+    return this.dialogueEngine.processInput(input, identity, scenario);
   }
 
-  public async handleUpdate(update: TelegramUpdate): Promise<void> {
+  public async handleUpdate(update: TelegramUpdate, optionalScenario?: ScenarioDefinition): Promise<void> {
     const { identity, chatId } = this.extractIdentity(update);
 
     // 1. Handle Callback Query
@@ -198,7 +200,7 @@ export class TelegramBotAdapter {
         };
       }
 
-      const result = await this.processDialogue(dialogueInput, identity);
+      const result = await this.processDialogue(dialogueInput, identity, optionalScenario);
       await this.sendTelegramResponse(chatId, result?.presentation);
       return;
     }
