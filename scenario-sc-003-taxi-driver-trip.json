@@ -12,7 +12,10 @@
         "value": "voice.accept-order"
       },
       "expectedPhrase": "Принять заказ",
-      "aliases": ["Принимаю заказ", "Беру заказ"],
+      "aliases": [
+        "Принимаю заказ",
+        "Беру заказ"
+      ],
       "steps": [
         {
           "kind": "emit",
@@ -26,6 +29,11 @@
         {
           "kind": "end"
         }
+      ],
+      "intent": "ACCEPT_ORDER",
+      "triggerPhrases": [
+        "прими заказ",
+        "принять заказ"
       ]
     },
     {
@@ -36,7 +44,10 @@
         "value": "voice.arrived"
       },
       "expectedPhrase": "Я приехал",
-      "aliases": ["Прибыл", "На месте"],
+      "aliases": [
+        "Прибыл",
+        "На месте"
+      ],
       "steps": [
         {
           "kind": "delay",
@@ -54,6 +65,13 @@
         {
           "kind": "end"
         }
+      ],
+      "intent": "DRIVER_ARRIVED",
+      "triggerPhrases": [
+        "я приехал",
+        "я приехала",
+        "я на месте",
+        "на месте"
       ]
     },
     {
@@ -64,7 +82,10 @@
         "value": "voice.start-trip"
       },
       "expectedPhrase": "Начать поездку",
-      "aliases": ["Поехали", "Начинаем поездку"],
+      "aliases": [
+        "Поехали",
+        "Начинаем поездку"
+      ],
       "steps": [
         {
           "kind": "emit",
@@ -78,6 +99,12 @@
         {
           "kind": "end"
         }
+      ],
+      "intent": "START_TRIP",
+      "triggerPhrases": [
+        "начать поездку",
+        "поехали",
+        "начинаем поездку"
       ]
     },
     {
@@ -88,7 +115,10 @@
         "value": "voice.finish-trip"
       },
       "expectedPhrase": "Завершить поездку",
-      "aliases": ["Поездка завершена", "Закончить поездку"],
+      "aliases": [
+        "Поездка завершена",
+        "Закончить поездку"
+      ],
       "steps": [
         {
           "kind": "delay",
@@ -107,6 +137,12 @@
         {
           "kind": "end"
         }
+      ],
+      "intent": "FINISH_TRIP",
+      "triggerPhrases": [
+        "завершить поездку",
+        "поездка завершена",
+        "закончить поездку"
       ]
     },
     {
@@ -117,7 +153,10 @@
         "value": "voice.available"
       },
       "expectedPhrase": "Готов к следующему заказу",
-      "aliases": ["Свободен", "Жду следующий заказ"],
+      "aliases": [
+        "Свободен",
+        "Жду следующий заказ"
+      ],
       "steps": [
         {
           "kind": "emit",
@@ -131,6 +170,13 @@
         {
           "kind": "end"
         }
+      ],
+      "intent": "DRIVER_AVAILABLE",
+      "triggerPhrases": [
+        "свободен",
+        "я свободен",
+        "готов к следующему заказу",
+        "жду следующий заказ"
       ]
     }
   ]
