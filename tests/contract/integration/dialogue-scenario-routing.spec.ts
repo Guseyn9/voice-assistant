@@ -334,8 +334,8 @@ test.describe('CONTRACT: SC-INTEGRATION-005 Generic Dialogue Scenario Routing & 
     const filePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../src/platform/telegram-bot-adapter.ts');
     const content = fs.readFileSync(filePath, 'utf8');
 
-    // Must allow calling handleUpdate without scenario
-    expect(content).toMatch(/handleUpdate\(\s*update:\s*TelegramUpdate,\s*optionalScenario\?:/);
+    expect(content).not.toContain('optionalScenario');
+    expect(content).toMatch(/handleUpdate\(\s*update:\s*TelegramUpdate\s*\)/);
   });
 
 });
