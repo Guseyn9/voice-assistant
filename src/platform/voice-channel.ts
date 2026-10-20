@@ -252,28 +252,9 @@ export class VoiceChannel {
         .replace(/[.!?؟،,;:]+$/gu, '').replace(/\s+/g, ' ');
     const text = normalizeIntentText(phrase);
     const activeScenarios = this.scenarioRegistry.filter(scenario => this.activeScenarioIds.has(scenario.id));
-    // Prefer an exact normalized phrase before permissive partial matching. This
-    // prevents a complete seller command from being shadowed by incidental words.
-    const exactMatches = activeScenarios.filter(sc => {
-      const triggers = [sc.activation?.value, sc.expectedPhrase, ...(sc.triggerPhrases || []), ...(sc.aliases || [])]
-        .filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
-      return triggers.some(trigger => normalizeIntentText(trigger) === text);
-    });
-    if (exactMatches.length > 0) {
-      const maxPriority = Math.max(...exactMatches.map(sc => sc.priority ?? 0));
-      const highestExactMatches = exactMatches.filter(sc => (sc.priority ?? 0) === maxPriority);
-      if (highestExactMatches.length === 1) {
-        const sc = highestExactMatches[0];
-        return { status: 'RESOLVED', scenarioId: sc.id, intent: sc.intent, scenario: sc };
-      }
-      return {
-        status: 'AMBIGUOUS_INTENT',
-        candidateScenarioIds: highestExactMatches.map(sc => sc.id),
-        candidateIntents: highestExactMatches.map(sc => sc.intent),
-        clarificationPrompt: highestExactMatches[0].ambiguityPrompt?.template
-      };
-    }
-
+    // Exact matches and shorter prefixes must compete in the same candidate set.
+    // Otherwise an exact low-priority trigger ("ride") can shadow a higher-priority
+    // trigger ("ride-vip"), and equal-priority prefixes become order-dependent.
     const matchingScenarios: ScenarioDefinition[] = [];
     const fullyMatchedScenarioIds = new Set<string>();
 
