@@ -65,8 +65,7 @@ export class DialogueEngine {
   }
 
   /**
-   * Start a registered scenario from a channel entry point such as a Telegram
-   * command or menu callback. Follow-up inputs continue through processInput
+   * Start a registered scenario from a channel entry point such as a command or menu callback. Follow-up inputs continue through processInput
    * and use this same DialogueContext.
    */
   public startScenario(scenarioId: string, identity: SessionIdentity): DialogueEngineResult {
