@@ -6,9 +6,9 @@ This is an adapter-level test bot flow for the nanny booking scenario. It valida
 
 ## Entry points
 
-- `/start`: explains the test and shows the “Заказать няню (тест)” inline button.
+- `/start`: shows registered scenario entry points as inline buttons.
 - `/order_nanny`: starts the registered `order-nanny` scenario.
-- Inline callback `start:order-nanny`: starts that same scenario from the menu.
+- Inline callback `start-scenario:order-nanny`: starts that same scenario from the menu.
 - Text and voice updates after start are passed to the shared `DialogueEngine`.
 
 ## Mixed-channel contract
@@ -32,6 +32,6 @@ The test transport substitutes a fixed transcript for a Telegram voice message. 
 
 ## Scope and limitations
 
-This is not a deployed Telegram bot. The repository's `TelegramBotAdapter` is a transport adapter and the contract suite uses `MockTelegramClient`; Telegram credentials, webhook/polling server, production persistence, and real STT deployment are deliberately not introduced by this test task. The action dispatcher is a test double and does not call a production Domain MCP or create a real order.
+This is not a deployed Telegram bot. The repository's `TelegramBotAdapter` is a generic transport adapter with caller-registered scenario entry points, and the contract suite uses `MockTelegramClient`; Telegram credentials, webhook/polling server, production persistence, and real STT deployment are deliberately not introduced by this test task. The action dispatcher is a test double and does not call a production Domain MCP or create a real order.
 
 A production deployment must provide a real `TelegramClient`, Telegram update delivery, durable dialogue-state storage, and a configured local STT provider. The dialogue contract must remain unchanged when those infrastructure adapters are added.
