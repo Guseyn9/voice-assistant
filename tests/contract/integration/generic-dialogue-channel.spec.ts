@@ -16,15 +16,15 @@ import { MockTelegramFileProvider } from './helpers/telegram-helpers';
 class MockGenericChannelAdapter {
   constructor(private engine: DialogueEngine) {}
 
-  async send(input: DialogueInput, identity: { ownerId: string; sessionId: string }, _scenario: ScenarioDefinition) {
-    return this.engine.processInput(input, identity);
+  async send(input: DialogueInput, identity: { ownerId: string; sessionId: string }, scenario: ScenarioDefinition) {
+    return this.engine.processInput(input, identity, scenario);
   }
 }
 
 class MockWebChannelAdapter {
   constructor(private engine: DialogueEngine) {}
 
-  async submit(input: DialogueInput, identity: { ownerId: string; sessionId: string }, _scenario: ScenarioDefinition) {
+  async submit(input: DialogueInput, identity: { ownerId: string; sessionId: string }, scenario: ScenarioDefinition) {
     return this.engine.processInput(input, identity, scenario);
   }
 }
@@ -90,7 +90,6 @@ test.describe('CONTRACT: SC-INTEGRATION-004 Generic Dialogue Channel Contract Su
     const sc = getNannyScenario();
     const adapter = new MockGenericChannelAdapter(engine);
 
-    await adapter.send({ modality: 'text', raw_input: 'нужна няня завтра' }, sessionUser, sc);
     await adapter.send({
       modality: 'voice',
       transcript: 'до восьми'
