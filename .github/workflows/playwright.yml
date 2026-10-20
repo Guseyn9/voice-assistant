@@ -14,22 +14,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - name: Explain platform E2E scope for pull requests
-        if: github.event_name == 'pull_request'
-        run: |
-          echo "::notice::Full platform E2E is not run for pull requests: the current app entrypoint is the seller cashier demo, while legacy platform specs require a separate platform runtime and globals (#voice-app-ready, __SCENARIO_ENGINE__, __VOICE_CHANNEL__)."
-          echo "Seller UI changes are validated by the Seller Voice Smoke Test workflow."
       - name: Install dependencies
-        if: github.event_name == 'push'
         run: npm ci
       - name: Install Playwright browsers
-        if: github.event_name == 'push'
         run: npx playwright install --with-deps chromium
-      - name: Run full E2E suite
-        if: github.event_name == 'push'
+      - name: Run full platform E2E suite
+        env:
+          APP_URL: http://localhost:3000/platform
         run: npm run test:e2e
       - name: Verify diagnostic report
-        if: always() && github.event_name == 'push'
+        if: always()
         shell: bash
         run: |
           echo "=== Playwright diagnostic files ==="
@@ -40,7 +34,7 @@ jobs:
             echo "::warning::Playwright JSON report was not generated."
           fi
       - name: Upload Playwright report
-        if: always() && github.event_name == 'push'
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
@@ -48,7 +42,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
       - name: Upload test results (traces, screenshots, videos)
-        if: always() && github.event_name == 'push'
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-results
