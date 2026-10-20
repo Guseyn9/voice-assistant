@@ -260,7 +260,7 @@ export class TelegramBotAdapter {
           modality: 'voice',
           transcript: voiceResult.normalizedInput.transcript
         };
-        const result = await this.processDialogue(dialogueInput, identity, optionalScenario);
+        const result = await this.processDialogue(dialogueInput, identity);
         await this.sendTelegramResponse(chatId, result?.presentation);
       }
       return;
@@ -298,7 +298,7 @@ export class TelegramBotAdapter {
         raw_input: update.message.text
       };
 
-      const result = await this.processDialogue(dialogueInput, identity, optionalScenario);
+      const result = await this.processDialogue(dialogueInput, identity);
       await this.sendTelegramResponse(chatId, result?.presentation);
       return;
     }
