@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs';
 import * as path from 'node:path';
 import { DialogueStateManager } from '../../../src/platform/dialogue-manager';
 import { VoiceChannel, type ScenarioSet } from '../../../src/platform/voice-channel';
+import { MockSTTProvider } from '../../../src/platform/stt-provider';
+import { TelegramVoiceTransport } from '../../../src/platform/telegram-voice-transport';
 
 const identity = { ownerId: 'cashier-test', sessionId: 'vegetable-stall-session' };
 const scenarioFile = path.resolve(process.cwd(), 'scenario-sc-001-vegetable-stall.json');
@@ -54,6 +56,8 @@ test.describe('SC-001 cashier voice phrase execution from the canonical scenario
           }
         });
         const channel = new VoiceChannel(dm);
+        const stt = new MockSTTProvider(phrase);
+        const transport = new TelegramVoiceTransport(stt);
         const scenarioSet: ScenarioSet = {
           version: 2,
           id: `cashier-${operation.id}`,
@@ -72,7 +76,13 @@ test.describe('SC-001 cashier voice phrase execution from the canonical scenario
         };
 
         channel.registerScenarioSet(scenarioSet);
-        const result = await channel.handleIncomingVoice(phrase, identity);
+        const transportResult = await transport.processVoiceMessage({
+          fileBuffer: Buffer.from('FAKE_TEST_AUDIO'),
+          mimeType: 'audio/ogg'
+        });
+        expect(transportResult.status).toBe('TRANSCRIPTION_SUCCESS');
+        expect(transportResult.normalizedInput?.transcript).toBe(phrase);
+        const result = await channel.handleIncomingVoice(transportResult.normalizedInput!.transcript, identity);
 
         expect(result.status).toBe('COMPLETED');
         expect(result.intent).toBe(operation.intent);
