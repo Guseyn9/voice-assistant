@@ -104,6 +104,7 @@ test.describe('CONTRACT: SC-INTEGRATION-004 Generic Dialogue Channel Contract Su
   test('GC-04: Mixed channels (Text -> Button -> Voice -> Button -> Voice) in ONE DialogueContext', async () => {
     const sc = getNannyScenario();
     const adapter = new MockGenericChannelAdapter(engine);
+    startScenario(sc, sessionUser);
 
     await adapter.send({ modality: 'text', raw_input: 'завтра' }, sessionUser);
     await adapter.send({ modality: 'button', payload: { slotName: 'start_time', slotValue: '15:00' } }, sessionUser);
@@ -256,6 +257,7 @@ test.describe('CONTRACT: SC-INTEGRATION-004 Generic Dialogue Channel Contract Su
   test('GC-08: Execution — ActionDispatcher called exactly once on confirmation', async () => {
     const sc = getNannyScenario();
     const adapter = new MockGenericChannelAdapter(engine);
+    startScenario(sc, sessionUser);
 
     await adapter.send({ modality: 'text', raw_input: 'завтра с трех до восьми на двух детей' }, sessionUser);
     await adapter.send({ modality: 'button', payload: { slotName: 'children_ages', slotValue: '5 лет' } }, sessionUser);
@@ -282,6 +284,7 @@ test.describe('CONTRACT: SC-INTEGRATION-004 Generic Dialogue Channel Contract Su
     const tgUser = { id: 12345 };
     const tgChat = { id: 67890 };
     const tgIdentity = { ownerId: '12345', sessionId: '67890' };
+    startScenario(sc, tgIdentity);
 
     // Send Telegram Update
     await botAdapter.handleUpdate({
@@ -298,6 +301,7 @@ test.describe('CONTRACT: SC-INTEGRATION-004 Generic Dialogue Channel Contract Su
     const sc = getNannyScenario();
     const webUser = { ownerId: 'web-user-1', sessionId: 'web-tab-9' };
     const webAdapter = new MockWebChannelAdapter(engine);
+    startScenario(sc, webUser);
 
     const res = await webAdapter.submit({ modality: 'text', raw_input: 'послезавтра' }, webUser);
     expect(dm.getActiveState(webUser)?.slots.date).toBe('послезавтра');
