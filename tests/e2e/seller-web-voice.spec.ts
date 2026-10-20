@@ -47,7 +47,7 @@ test.describe('Seller web voice interface', () => {
 
   test('supports the sale phrase and shows the simulated receipt result', async ({ page }) => {
     await page.goto('/');
-    await page.getByLabel('Текст команды').fill('Продай клиенту два килограмма помидоров и пробей чек');
+    await page.getByLabel('Текст команды').fill('Продай клиенту два килограмма помидоров и пробей чек.');
     await page.getByRole('button', { name: 'Выполнить' }).click();
 
     await expect(page.getByTestId('operation-result')).toContainText('Продано два килограмма помидоров на сумму 30 дирхам.');
