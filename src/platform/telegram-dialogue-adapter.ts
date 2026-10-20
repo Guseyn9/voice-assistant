@@ -1,5 +1,5 @@
 import { DialogueStateManager, type SessionIdentity } from './dialogue-manager';
-import { VoiceChannel, type ScenarioDefinition } from './voice-channel';
+import { VoiceChannel } from './voice-channel';
 import {
   DialogueEngine,
   type DialogueInput,
@@ -56,8 +56,7 @@ export class TelegramDialogueAdapter {
 
   public async handleMessage(
     input: TelegramInputMessage,
-    identity: SessionIdentity,
-    activeScenario?: ScenarioDefinition
+    identity: SessionIdentity
   ): Promise<DialogueAdapterResult> {
     const dm = this.engine.getDialogueManager();
     const activeCtxBefore = dm.getActiveState(identity);
@@ -75,7 +74,7 @@ export class TelegramDialogueAdapter {
       } : undefined
     };
 
-    const res = await this.engine.processInput(dialogueInput, identity, activeScenario);
+    const res = await this.engine.processInput(dialogueInput, identity);
 
     const activeCtxAfter = dm.getActiveState(identity);
     const newState = activeCtxAfter ? { ...activeCtxAfter.slots } : (res.slots || {});
