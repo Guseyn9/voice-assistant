@@ -91,6 +91,7 @@ test.describe('CONTRACT: SC-INTEGRATION-004 Generic Dialogue Channel Contract Su
   test('GC-03: Voice — DialogueInput(voice with transcript) passes through the same DialogueEngine', async () => {
     const sc = getNannyScenario();
     const adapter = new MockGenericChannelAdapter(engine);
+    startScenario(sc, sessionUser);
 
     await adapter.send({
       modality: 'voice',
@@ -142,11 +143,13 @@ test.describe('CONTRACT: SC-INTEGRATION-004 Generic Dialogue Channel Contract Su
       }
     };
 
+    vc.registerScenarioSet({ version: 1, id: 'service-booking-set', scenarios: [serviceScenario] });
     const userS = { ownerId: 'u-serv', sessionId: 's-serv' };
     const adapter = new MockGenericChannelAdapter(engine);
 
-    // Initial message to open context
-    await adapter.send({ modality: 'text', raw_input: 'завтра' }, userS, serviceScenario);
+    // Start registered scenario, then fill date in the active context.
+    engine.startScenario(serviceScenario.id, userS);
+    await adapter.send({ modality: 'text', raw_input: 'завтра' }, userS);
 
     // Attach custom candidate items with non-standard fields
     const ctx = dm.getActiveState(userS)!;
@@ -157,7 +160,7 @@ test.describe('CONTRACT: SC-INTEGRATION-004 Generic Dialogue Channel Contract Su
     expect(dm.setOffersForContext(ctx.contextId, offers, userS)).toBe(true);
 
     // Send selection choice
-    await adapter.send({ modality: 'voice', transcript: 'выбираю второй' }, userS, serviceScenario);
+    await adapter.send({ modality: 'voice', transcript: 'выбираю второй' }, userS);
 
     expect(dm.getActiveState(userS)?.slots.selected_service).toBe('svc-42');
   });
@@ -178,6 +181,7 @@ test.describe('CONTRACT: SC-INTEGRATION-004 Generic Dialogue Channel Contract Su
       }
     };
 
+    vc.registerScenarioSet({ version: 1, id: 'service-booking-pres-set', scenarios: [serviceScenario] });
     const userP = { ownerId: 'u-pres', sessionId: 's-pres' };
     const adapter = new MockGenericChannelAdapter(engine);
 
@@ -188,7 +192,7 @@ test.describe('CONTRACT: SC-INTEGRATION-004 Generic Dialogue Channel Contract Su
     ] as any);
 
     // Prompt presentation generated
-    const res = await adapter.send({ modality: 'text', raw_input: 'start' }, userP, serviceScenario);
+    const res = await adapter.send({ modality: 'text', raw_input: 'start' }, userP);
 
     expect(res.presentation.actions).toBeDefined();
     const actions = res.presentation.actions![0];
@@ -213,11 +217,13 @@ test.describe('CONTRACT: SC-INTEGRATION-004 Generic Dialogue Channel Contract Su
       }
     };
 
+    vc.registerScenarioSet({ version: 1, id: 'approval-set', scenarios: [approvalScenario] });
     const userAppr = { ownerId: 'u-appr', sessionId: 's-appr' };
+    engine.startScenario(approvalScenario.id, userAppr);
     const adapter = new MockGenericChannelAdapter(engine);
 
     // 1. Fill target_item
-    const resPrompt = await adapter.send({ modality: 'button', payload: { slotName: 'target_item', slotValue: 'item-777' } }, userAppr, approvalScenario);
+    const resPrompt = await adapter.send({ modality: 'button', payload: { slotName: 'target_item', slotValue: 'item-777' } }, userAppr);
 
     expect(resPrompt.presentation.actions).toBeDefined();
     const actionRow = resPrompt.presentation.actions![0];
