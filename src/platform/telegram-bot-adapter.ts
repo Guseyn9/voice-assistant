@@ -20,6 +20,12 @@ export interface TelegramSendOptions {
   };
 }
 
+export interface TelegramScenarioEntryPoint {
+  command: string;
+  scenarioId: string;
+  label: string;
+}
+
 export interface TelegramClient {
   sendMessage(chatId: string, text: string, options?: TelegramSendOptions): Promise<void>;
   answerCallbackQuery(callbackQueryId: string): Promise<void>;
@@ -81,6 +87,7 @@ export class TelegramBotAdapter {
   private telegramDialogueAdapter: TelegramDialogueAdapter | null = null;
   private voiceTransport: TelegramVoiceTransport;
   private telegramClient: TelegramClient;
+  private scenarioEntryPoints: TelegramScenarioEntryPoint[] = [];
 
   constructor(
     dialogueHandler: TelegramDialogueAdapter | DialogueEngine,
@@ -95,6 +102,17 @@ export class TelegramBotAdapter {
     }
     this.voiceTransport = voiceTransport;
     this.telegramClient = telegramClient;
+  }
+
+  public registerScenarioEntryPoint(entryPoint: TelegramScenarioEntryPoint): void {
+    const command = entryPoint.command.trim().toLowerCase();
+    if (!command || !entryPoint.scenarioId.trim() || !entryPoint.label.trim()) {
+      throw new Error('INVALID_SCENARIO_ENTRY_POINT');
+    }
+    if (this.scenarioEntryPoints.some(entry => entry.command.trim().toLowerCase() === command || entry.scenarioId === entryPoint.scenarioId)) {
+      throw new Error('DUPLICATE_SCENARIO_ENTRY_POINT');
+    }
+    this.scenarioEntryPoints.push({ ...entryPoint, command });
   }
 
   public encodeCallbackData(slotName: string, slotValue: unknown): string {
@@ -183,8 +201,15 @@ export class TelegramBotAdapter {
 
       const data = update.callback_query.data || '';
 
-      if (data === 'start:order-nanny') {
-        const started = this.dialogueEngine.startScenario('order-nanny', identity);
+      const scenarioStartPrefix = 'start-scenario:';
+      if (data.startsWith(scenarioStartPrefix)) {
+        const scenarioId = decodeURIComponent(data.slice(scenarioStartPrefix.length));
+        const entryPoint = this.scenarioEntryPoints.find(entry => entry.scenarioId === scenarioId);
+        if (!entryPoint) {
+          await this.telegramClient.sendMessage(chatId, 'Сценарий не найден.');
+          return;
+        }
+        const started = this.dialogueEngine.startScenario(entryPoint.scenarioId, identity);
         await this.sendTelegramResponse(chatId, started.presentation);
         return;
       }
@@ -248,23 +273,23 @@ export class TelegramBotAdapter {
       const normalizedText = update.message.text.trim().toLowerCase();
 
       if (normalizedText === '/start') {
+        const keyboard = this.scenarioEntryPoints.map(entry => [{
+          text: entry.label,
+          callback_data: `start-scenario:${encodeURIComponent(entry.scenarioId)}`
+        }]);
         await this.telegramClient.sendMessage(
           chatId,
-          'Тестовый интерфейс заказа няни. Можно отвечать кнопками, текстом или голосовыми сообщениями. Начните тест кнопкой ниже или командой /order_nanny.',
-          {
-            reply_markup: {
-              inline_keyboard: [[{
-                text: 'Заказать няню (тест)',
-                callback_data: 'start:order-nanny'
-              }]]
-            }
-          }
+          'Выберите сценарий. Отвечать можно текстом, кнопками или голосовым сообщением.',
+          keyboard.length ? { reply_markup: { inline_keyboard: keyboard } } : undefined
         );
         return;
       }
 
-      if (normalizedText === '/order_nanny' || normalizedText === 'заказать няню') {
-        const started = this.dialogueEngine.startScenario('order-nanny', identity);
+      const entryPoint = this.scenarioEntryPoints.find(entry =>
+        normalizedText === entry.command || normalizedText === `/${entry.command.replace(/^\\/+/, '')}`
+      );
+      if (entryPoint) {
+        const started = this.dialogueEngine.startScenario(entryPoint.scenarioId, identity);
         await this.sendTelegramResponse(chatId, started.presentation);
         return;
       }
