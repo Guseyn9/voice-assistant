@@ -58,7 +58,7 @@ test.describe('CONTRACT: SC-INTEGRATION-002 Real Telegram Voice Input + STT Inte
     });
 
     if (transportRes.status === 'TRANSCRIPTION_SUCCESS' && transportRes.normalizedInput) {
-      return adapter.handleMessage(transportRes.normalizedInput, sessionUser, getScenario());
+      return adapter.handleMessage(transportRes.normalizedInput, sessionUser);
     }
     return transportRes;
   };
@@ -73,7 +73,7 @@ test.describe('CONTRACT: SC-INTEGRATION-002 Real Telegram Voice Input + STT Inte
     const sc = getScenario();
 
     // 1. Button: date = завтра
-    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'date', slotValue: 'завтра' } }, sessionUser, sc);
+    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'date', slotValue: 'завтра' } }, sessionUser);
 
     // 2. Voice: "с трех"
     await sendVoiceAudio('с трех');
@@ -82,7 +82,7 @@ test.describe('CONTRACT: SC-INTEGRATION-002 Real Telegram Voice Input + STT Inte
     await sendVoiceAudio('до восьми');
 
     // 4. Button: children_count = 2
-    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'children_count', slotValue: 2 } }, sessionUser, sc);
+    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'children_count', slotValue: 2 } }, sessionUser);
 
     // Assert: Single unified context
     expect(dm.listContexts(sessionUser).length).toBe(1);
@@ -97,7 +97,7 @@ test.describe('CONTRACT: SC-INTEGRATION-002 Real Telegram Voice Input + STT Inte
     const sc = getScenario();
 
     // Button: 15:00
-    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'start_time', slotValue: '15:00' } }, sessionUser, sc);
+    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'start_time', slotValue: '15:00' } }, sessionUser);
     expect(dm.getActiveState(sessionUser)?.slots.start_time).toBe('15:00');
 
     // Voice correction
@@ -119,7 +119,7 @@ test.describe('CONTRACT: SC-INTEGRATION-002 Real Telegram Voice Input + STT Inte
       return origResolve(...args);
     };
 
-    await adapter.handleMessage({ channel: 'text', raw_input: 'завтра' }, sessionUser, sc);
+    await adapter.handleMessage({ channel: 'text', raw_input: 'завтра' }, sessionUser);
     const ctx = dm.getActiveState(sessionUser)!;
     expect(dm.setOffersForContext(ctx.contextId, [
       { id: 'xyz-17', name: 'Ирина', index: 1, status: 'AVAILABLE' },
@@ -135,14 +135,14 @@ test.describe('CONTRACT: SC-INTEGRATION-002 Real Telegram Voice Input + STT Inte
   test('TV-05: Voice confirmation triggers single execution dispatch', async () => {
     const sc = getScenario();
 
-    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'date', slotValue: 'завтра' } }, sessionUser, sc);
-    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'start_time', slotValue: '15:00' } }, sessionUser, sc);
-    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'end_time', slotValue: '20:00' } }, sessionUser, sc);
-    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'children_count', slotValue: 2 } }, sessionUser, sc);
-    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'children_ages', slotValue: '5 лет' } }, sessionUser, sc);
-    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'location', slotValue: 'Центр' } }, sessionUser, sc);
-    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'requirements', slotValue: 'без особых требований' } }, sessionUser, sc);
-    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'selected_nanny', slotValue: 'xyz-42' } }, sessionUser, sc);
+    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'date', slotValue: 'завтра' } }, sessionUser);
+    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'start_time', slotValue: '15:00' } }, sessionUser);
+    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'end_time', slotValue: '20:00' } }, sessionUser);
+    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'children_count', slotValue: 2 } }, sessionUser);
+    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'children_ages', slotValue: '5 лет' } }, sessionUser);
+    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'location', slotValue: 'Центр' } }, sessionUser);
+    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'requirements', slotValue: 'без особых требований' } }, sessionUser);
+    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'selected_nanny', slotValue: 'xyz-42' } }, sessionUser);
 
     const res = await sendVoiceAudio('да, подтверждаю');
 
@@ -153,7 +153,7 @@ test.describe('CONTRACT: SC-INTEGRATION-002 Real Telegram Voice Input + STT Inte
 
   test('TV-06: Voice cancellation', async () => {
     const sc = getScenario();
-    await adapter.handleMessage({ channel: 'text', raw_input: 'нужна няня' }, sessionUser, sc);
+    await adapter.handleMessage({ channel: 'text', raw_input: 'нужна няня' }, sessionUser);
     expect(dm.getActiveState(sessionUser)).toBeDefined();
 
     const res = await sendVoiceAudio('отменяю');
@@ -164,7 +164,7 @@ test.describe('CONTRACT: SC-INTEGRATION-002 Real Telegram Voice Input + STT Inte
 
   test('TV-07: STT failure keeps context intact and allows continuation', async () => {
     const sc = getScenario();
-    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'date', slotValue: 'сегодня' } }, sessionUser, sc);
+    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'date', slotValue: 'сегодня' } }, sessionUser);
 
     mockSTT.setFailure(new Error('STT_UNAVAILABLE'));
 
@@ -180,13 +180,13 @@ test.describe('CONTRACT: SC-INTEGRATION-002 Real Telegram Voice Input + STT Inte
     expect(ctx?.slots.date).toBe('сегодня');
     expect(dispatcherCalls).toBe(0);
 
-    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'start_time', slotValue: '15:00' } }, sessionUser, sc);
+    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'start_time', slotValue: '15:00' } }, sessionUser);
     expect(dm.getActiveState(sessionUser)?.slots.start_time).toBe('15:00');
   });
 
   test('TV-08: Empty transcript leaves state untouched', async () => {
     const sc = getScenario();
-    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'date', slotValue: 'сегодня' } }, sessionUser, sc);
+    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'date', slotValue: 'сегодня' } }, sessionUser);
 
     mockSTT.setTranscript('   ');
 
@@ -224,7 +224,7 @@ test.describe('CONTRACT: SC-INTEGRATION-002 Real Telegram Voice Input + STT Inte
 
   test('TV-10: Telegram download failure stops pipeline before STT and preserves state', async () => {
     const sc = getScenario();
-    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'date', slotValue: 'сегодня' } }, sessionUser, sc);
+    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'date', slotValue: 'сегодня' } }, sessionUser);
 
     mockFileProvider.registerFile('file-fail', 'voice/fail.ogg', 'audio/ogg', Buffer.from('audio'));
     mockFileProvider.shouldFailDownload = true;
@@ -274,14 +274,14 @@ test.describe('CONTRACT: SC-INTEGRATION-002 Real Telegram Voice Input + STT Inte
     const sc = getScenario();
 
     // 1. Initial State via Button
-    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'date', slotValue: 'завтра' } }, sessionUser, sc);
-    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'start_time', slotValue: '15:00' } }, sessionUser, sc);
-    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'end_time', slotValue: '20:00' } }, sessionUser, sc);
-    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'children_count', slotValue: 2 } }, sessionUser, sc);
-    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'children_ages', slotValue: '5 лет' } }, sessionUser, sc);
-    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'location', slotValue: 'Центр' } }, sessionUser, sc);
-    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'requirements', slotValue: 'без требований' } }, sessionUser, sc);
-    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'selected_nanny', slotValue: 'xyz-42' } }, sessionUser, sc);
+    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'date', slotValue: 'завтра' } }, sessionUser);
+    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'start_time', slotValue: '15:00' } }, sessionUser);
+    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'end_time', slotValue: '20:00' } }, sessionUser);
+    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'children_count', slotValue: 2 } }, sessionUser);
+    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'children_ages', slotValue: '5 лет' } }, sessionUser);
+    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'location', slotValue: 'Центр' } }, sessionUser);
+    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'requirements', slotValue: 'без требований' } }, sessionUser);
+    await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'selected_nanny', slotValue: 'xyz-42' } }, sessionUser);
 
     // 2. Register real-like Telegram voice message in File Provider
     mockFileProvider.registerFile('tg-voice-confirm-file', 'voice/voice_conf.ogg', 'audio/ogg', Buffer.from('REAL_AUDIO_PAYLOAD'));
@@ -298,7 +298,7 @@ test.describe('CONTRACT: SC-INTEGRATION-002 Real Telegram Voice Input + STT Inte
     expect(transportRes.normalizedInput).toBeDefined();
 
     // 4. Feed normalized input into existing Dialogue Adapter
-    const finalResult = await adapter.handleMessage(transportRes.normalizedInput!, sessionUser, sc);
+    const finalResult = await adapter.handleMessage(transportRes.normalizedInput!, sessionUser);
 
     // 5. Verify full business outcome: Execution created and Action dispatched!
     expect(finalResult.status).toBe('ORDER_CONFIRMED');
@@ -351,13 +351,13 @@ test.describe('CONTRACT: SC-INTEGRATION-002 Real Telegram Voice Input + STT Inte
     const sharedAdapter = new TelegramDialogueAdapter(sharedDM, sharedVC);
 
     const u = { ownerId: 'u-at4', sessionId: 's-at4' };
-    await sharedAdapter.handleMessage({ channel: 'text', raw_input: 'завтра с трех до восьми на двух детей' }, u, sc);
-    await sharedAdapter.handleMessage({ channel: 'button', button_payload: { slotName: 'children_ages', slotValue: '5 лет' } }, u, sc);
-    await sharedAdapter.handleMessage({ channel: 'button', button_payload: { slotName: 'location', slotValue: 'Центр' } }, u, sc);
-    await sharedAdapter.handleMessage({ channel: 'button', button_payload: { slotName: 'requirements', slotValue: 'без требований' } }, u, sc);
-    await sharedAdapter.handleMessage({ channel: 'button', button_payload: { slotName: 'selected_nanny', slotValue: 'nanny-1' } }, u, sc);
+    await sharedAdapter.handleMessage({ channel: 'text', raw_input: 'завтра с трех до восьми на двух детей' }, u);
+    await sharedAdapter.handleMessage({ channel: 'button', button_payload: { slotName: 'children_ages', slotValue: '5 лет' } }, u);
+    await sharedAdapter.handleMessage({ channel: 'button', button_payload: { slotName: 'location', slotValue: 'Центр' } }, u);
+    await sharedAdapter.handleMessage({ channel: 'button', button_payload: { slotName: 'requirements', slotValue: 'без требований' } }, u);
+    await sharedAdapter.handleMessage({ channel: 'button', button_payload: { slotName: 'selected_nanny', slotValue: 'nanny-1' } }, u);
 
-    await sharedAdapter.handleMessage({ channel: 'voice', transcript: 'подтверждаю' }, u, sc);
+    await sharedAdapter.handleMessage({ channel: 'voice', transcript: 'подтверждаю' }, u);
 
     expect(dispatchedEvents.length).toBe(1);
     expect(dispatchedEvents[0]).toBe('nanny.order.confirmed');
