@@ -82,7 +82,7 @@ test.describe('MIXED-NANNY-TEST-BOT: one dialogue state across Telegram buttons,
 
   test('Telegram /start exposes test entry; menu button starts the registered scenario', async () => {
     await bot.handleUpdate(updateText('/start'));
-    expect(telegram.getLastMessage()?.text).toContain('голосовыми сообщениями');
+    expect(telegram.getLastMessage()?.text).toContain('голосовым сообщением');
     expect(telegram.getLastMessage()?.options?.reply_markup?.inline_keyboard[0][0].callback_data)
       .toBe('start-scenario:order-nanny');
 
