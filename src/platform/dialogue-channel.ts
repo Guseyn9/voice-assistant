@@ -133,8 +133,7 @@ export class DialogueEngine {
 
   public async processInput(
     input: DialogueInput,
-    identity: SessionIdentity,
-    explicitScenario?: ScenarioDefinition
+    identity: SessionIdentity
   ): Promise<DialogueEngineResult> {
     const inputModality: DialogueModality = input.modality || (input.channel as DialogueModality) || 'text';
     let rawText = '';
@@ -148,7 +147,7 @@ export class DialogueEngine {
     }
 
     // 1. Scenario Resolution & Binding Layer
-    let activeScenario = explicitScenario;
+    let activeScenario: ScenarioDefinition | undefined;
     let ctx = this.dm.getActiveState(identity);
 
     if (!activeScenario) {
