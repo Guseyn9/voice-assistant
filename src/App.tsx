@@ -87,9 +87,9 @@ function App() {
   const voiceChannel = useMemo(() => {
     const manager = new DialogueStateManager({
       enableAutoExpiryScheduler: false,
-      actionDispatcher: async event => {
+      actionDispatcher: async (event, _context, execution) => {
         setLastEvent({ type: event.type, payload: event.payload });
-        return { status: 'SUCCEEDED', executionId: `demo-${Date.now()}`, attempt: 1 };
+        return { status: 'SUCCEEDED', executionId: execution.executionId, attempt: execution.attempt };
       }
     });
     const channel = new VoiceChannel(manager);
