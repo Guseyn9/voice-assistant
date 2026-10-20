@@ -115,6 +115,8 @@ test.describe('CONTRACT: SC-INTEGRATION-001 Mixed Button / Text / Voice Dialogue
   test('Test D — Voice -> Button: Начать voice, закончить кнопками', async () => {
     const sc = getScenario();
 
+    startScenario(sessionUser);
+
     await adapter.handleMessage({ channel: 'voice', transcript: 'завтра с трех' }, sessionUser);
     await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'end_time', slotValue: '20:00' } }, sessionUser);
 
