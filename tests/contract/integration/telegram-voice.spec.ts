@@ -46,6 +46,7 @@ test.describe('CONTRACT: SC-INTEGRATION-002 Real Telegram Voice Input + STT Inte
   });
 
   const getScenario = () => nannyScenarioSet.scenarios[0];
+  const startScenario = (user = sessionUser) => adapter.getDialogueEngine().startScenario(getScenario().id, user);
 
   const fakeAudioBuffer = Buffer.from('RIFF_FAKE_AUDIO_DATA_OGG');
 
@@ -72,6 +73,8 @@ test.describe('CONTRACT: SC-INTEGRATION-002 Real Telegram Voice Input + STT Inte
   test('TV-02: Voice сохраняет существующий context (Button -> Voice -> Voice -> Button)', async () => {
     const sc = getScenario();
 
+    startScenario();
+
     // 1. Button: date = завтра
     await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'date', slotValue: 'завтра' } }, sessionUser);
 
@@ -95,6 +98,8 @@ test.describe('CONTRACT: SC-INTEGRATION-002 Real Telegram Voice Input + STT Inte
 
   test('TV-03: Voice correction (Button 15:00 -> Voice "нет, давайте в четыре")', async () => {
     const sc = getScenario();
+
+    startScenario();
 
     // Button: 15:00
     await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'start_time', slotValue: '15:00' } }, sessionUser);
@@ -135,6 +140,8 @@ test.describe('CONTRACT: SC-INTEGRATION-002 Real Telegram Voice Input + STT Inte
   test('TV-05: Voice confirmation triggers single execution dispatch', async () => {
     const sc = getScenario();
 
+    startScenario();
+
     await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'date', slotValue: 'завтра' } }, sessionUser);
     await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'start_time', slotValue: '15:00' } }, sessionUser);
     await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'end_time', slotValue: '20:00' } }, sessionUser);
@@ -164,6 +171,8 @@ test.describe('CONTRACT: SC-INTEGRATION-002 Real Telegram Voice Input + STT Inte
 
   test('TV-07: STT failure keeps context intact and allows continuation', async () => {
     const sc = getScenario();
+
+    startScenario();
     await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'date', slotValue: 'сегодня' } }, sessionUser);
 
     mockSTT.setFailure(new Error('STT_UNAVAILABLE'));
@@ -186,6 +195,8 @@ test.describe('CONTRACT: SC-INTEGRATION-002 Real Telegram Voice Input + STT Inte
 
   test('TV-08: Empty transcript leaves state untouched', async () => {
     const sc = getScenario();
+
+    startScenario();
     await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'date', slotValue: 'сегодня' } }, sessionUser);
 
     mockSTT.setTranscript('   ');
@@ -224,6 +235,8 @@ test.describe('CONTRACT: SC-INTEGRATION-002 Real Telegram Voice Input + STT Inte
 
   test('TV-10: Telegram download failure stops pipeline before STT and preserves state', async () => {
     const sc = getScenario();
+
+    startScenario();
     await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'date', slotValue: 'сегодня' } }, sessionUser);
 
     mockFileProvider.registerFile('file-fail', 'voice/fail.ogg', 'audio/ogg', Buffer.from('audio'));
@@ -272,6 +285,8 @@ test.describe('CONTRACT: SC-INTEGRATION-002 Real Telegram Voice Input + STT Inte
 
   test('TV-12: Full Telegram Voice path (file_id -> FileProvider -> Audio -> STT -> Adapter -> State -> Dispatcher)', async () => {
     const sc = getScenario();
+
+    startScenario();
 
     // 1. Initial State via Button
     await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'date', slotValue: 'завтра' } }, sessionUser);
