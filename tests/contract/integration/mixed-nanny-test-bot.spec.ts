@@ -73,15 +73,20 @@ test.describe('MIXED-NANNY-TEST-BOT: one dialogue state across Telegram buttons,
     } as unknown as TelegramVoiceTransport;
 
     bot = new TelegramBotAdapter(engine, voiceTransport, telegram);
+    bot.registerScenarioEntryPoint({
+      command: '/order_nanny',
+      scenarioId: 'order-nanny',
+      label: 'Заказать няню (тест)'
+    });
   });
 
   test('Telegram /start exposes test entry; menu button starts the registered scenario', async () => {
     await bot.handleUpdate(updateText('/start'));
     expect(telegram.getLastMessage()?.text).toContain('голосовыми сообщениями');
     expect(telegram.getLastMessage()?.options?.reply_markup?.inline_keyboard[0][0].callback_data)
-      .toBe('start:order-nanny');
+      .toBe('start-scenario:order-nanny');
 
-    await bot.handleUpdate(callback('start:order-nanny'));
+    await bot.handleUpdate(callback('start-scenario:order-nanny'));
     expect(telegram.getLastMessage()?.text).toBe('Когда нужна няня?');
     const context = dm.getActiveState(identity);
     expect(context?.scenarioId).toBe('order-nanny');
