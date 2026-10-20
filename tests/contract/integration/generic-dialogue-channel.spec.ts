@@ -234,7 +234,7 @@ test.describe('CONTRACT: SC-INTEGRATION-004 Generic Dialogue Channel Contract Su
     expect(actionRow[1].payload.slotValue).toBe('NO');
 
     // 2. Confirm
-    const resConfirmed = await adapter.send({ modality: 'button', payload: { slotName: 'approval', slotValue: 'YES' } }, userAppr, approvalScenario);
+    const resConfirmed = await adapter.send({ modality: 'button', payload: { slotName: 'approval', slotValue: 'YES' } }, userAppr);
     expect(resConfirmed.status).toBe('CONFIRMED');
     expect(resConfirmed.presentation.text).toBe('Approval registered successfully');
   });
