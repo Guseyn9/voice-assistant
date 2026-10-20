@@ -285,9 +285,10 @@ export class TelegramBotAdapter {
         return;
       }
 
-      const entryPoint = this.scenarioEntryPoints.find(entry =>
-        normalizedText === entry.command || normalizedText === `/${entry.command.replace(/^\\/+/, '')}`
-      );
+      const entryPoint = this.scenarioEntryPoints.find(entry => {
+        const command = entry.command.startsWith('/') ? entry.command.slice(1) : entry.command;
+        return normalizedText === entry.command || normalizedText === `/${command}`;
+      });
       if (entryPoint) {
         const started = this.dialogueEngine.startScenario(entryPoint.scenarioId, identity);
         await this.sendTelegramResponse(chatId, started.presentation);
