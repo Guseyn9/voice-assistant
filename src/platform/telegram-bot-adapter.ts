@@ -182,6 +182,13 @@ export class TelegramBotAdapter {
       await this.telegramClient.answerCallbackQuery(update.callback_query.id);
 
       const data = update.callback_query.data || '';
+
+      if (data === 'start:order-nanny') {
+        const started = this.dialogueEngine.startScenario('order-nanny', identity);
+        await this.sendTelegramResponse(chatId, started.presentation);
+        return;
+      }
+
       let dialogueInput: DialogueInput;
 
       const decoded = this.decodeCallbackData(data);
@@ -236,8 +243,32 @@ export class TelegramBotAdapter {
       return;
     }
 
-    // 3. Handle Text Message
+    // 3. Handle Text Message and explicit scenario start commands.
     if (update.message?.text) {
+      const normalizedText = update.message.text.trim().toLowerCase();
+
+      if (normalizedText === '/start') {
+        await this.telegramClient.sendMessage(
+          chatId,
+          'Тестовый интерфейс заказа няни. Можно отвечать кнопками, текстом или голосовыми сообщениями. Начните тест кнопкой ниже или командой /order_nanny.',
+          {
+            reply_markup: {
+              inline_keyboard: [[{
+                text: 'Заказать няню (тест)',
+                callback_data: 'start:order-nanny'
+              }]]
+            }
+          }
+        );
+        return;
+      }
+
+      if (normalizedText === '/order_nanny' || normalizedText === 'заказать няню') {
+        const started = this.dialogueEngine.startScenario('order-nanny', identity);
+        await this.sendTelegramResponse(chatId, started.presentation);
+        return;
+      }
+
       const dialogueInput: DialogueInput = {
         modality: 'text',
         raw_input: update.message.text
