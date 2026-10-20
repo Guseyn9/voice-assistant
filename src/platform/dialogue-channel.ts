@@ -154,8 +154,7 @@ export class DialogueEngine {
     if (!activeScenario) {
       if (ctx && ctx.scenarioId) {
         // Rule A: Existing context drives the scenario
-        activeScenario = this.vc.getScenarioById(ctx.scenarioId)
-          || this.vc.getDeterministicScenarioForIntent(ctx.intent);
+        activeScenario = this.vc.getScenarioById(ctx.scenarioId);
       } else {
         // Rule B: Button without existing context cannot resolve intent
         if (inputModality === 'button') {
