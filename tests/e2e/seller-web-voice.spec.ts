@@ -31,7 +31,7 @@ test.describe('Seller web voice interface', () => {
   });
 
   test('routes browser speech transcript to the seller operation and renders result', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/seller');
     await page.getByRole('heading', { name: 'Голосовая касса' }).waitFor();
     await page.getByRole('button', { name: 'Начать запись' }).click();
     await page.evaluate(() => {
@@ -46,7 +46,7 @@ test.describe('Seller web voice interface', () => {
   });
 
   test('supports the sale phrase and shows the simulated receipt result', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/seller');
     await page.getByLabel('Текст команды').fill('Продай клиенту два килограмма помидоров и пробей чек.');
     await page.getByRole('button', { name: 'Выполнить' }).click();
 
@@ -57,7 +57,7 @@ test.describe('Seller web voice interface', () => {
   });
 
   test('shows a no-match result instead of inventing an operation', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/seller');
     await page.getByLabel('Текст команды').fill('закажи мне билет на поезд');
     await page.getByRole('button', { name: 'Выполнить' }).click();
 
