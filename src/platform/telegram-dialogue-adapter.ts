@@ -90,7 +90,7 @@ export class TelegramDialogueAdapter {
       channel: input.channel,
       raw_input: input.raw_input || null,
       transcript: input.transcript || null,
-      intent: activeCtxAfter?.intent || activeScenario?.intent || null,
+      intent: activeCtxAfter?.intent || activeCtxBefore?.intent || null,
       extracted_slots: extractedSlots,
       previous_state: prevState,
       new_state: newState,
@@ -99,7 +99,7 @@ export class TelegramDialogueAdapter {
     };
 
     // The Telegram-facing order contract retains its established terminal status.
-    return res.status === 'CONFIRMED' && (activeCtxAfter?.intent || activeScenario?.intent || activeCtxBefore?.intent) === 'ORDER_NANNY'
+    return res.status === 'CONFIRMED' && (activeCtxAfter?.intent || activeCtxBefore?.intent) === 'ORDER_NANNY'
       ? { ...res, status: 'ORDER_CONFIRMED' }
       : res;
   }
