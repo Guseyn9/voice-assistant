@@ -5,7 +5,13 @@ import App from './App.tsx'
 
 const root = createRoot(document.getElementById('root')!)
 
-if (window.location.pathname.replace(/\/$/, '') === '/platform') {
+if (window.location.pathname.replace(/\/$/, '') === '/seller') {
+  root.render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  )
+} else {
   void import('./platform-entry').then(({ mountPlatformRuntime }) => {
     mountPlatformRuntime()
   }).catch(error => {
@@ -15,10 +21,4 @@ if (window.location.pathname.replace(/\/$/, '') === '/platform') {
     }
     throw error
   })
-} else {
-  root.render(
-    <StrictMode>
-      <App />
-    </StrictMode>,
-  )
 }
