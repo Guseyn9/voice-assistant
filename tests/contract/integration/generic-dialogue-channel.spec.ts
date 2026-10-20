@@ -16,16 +16,16 @@ import { MockTelegramFileProvider } from './helpers/telegram-helpers';
 class MockGenericChannelAdapter {
   constructor(private engine: DialogueEngine) {}
 
-  async send(input: DialogueInput, identity: { ownerId: string; sessionId: string }, scenario: ScenarioDefinition) {
-    return this.engine.processInput(input, identity, scenario);
+  async send(input: DialogueInput, identity: { ownerId: string; sessionId: string }) {
+    return this.engine.processInput(input, identity);
   }
 }
 
 class MockWebChannelAdapter {
   constructor(private engine: DialogueEngine) {}
 
-  async submit(input: DialogueInput, identity: { ownerId: string; sessionId: string }, scenario: ScenarioDefinition) {
-    return this.engine.processInput(input, identity, scenario);
+  async submit(input: DialogueInput, identity: { ownerId: string; sessionId: string }) {
+    return this.engine.processInput(input, identity);
   }
 }
 
@@ -65,7 +65,7 @@ test.describe('CONTRACT: SC-INTEGRATION-004 Generic Dialogue Channel Contract Su
     const res = await adapter.send({
       modality: 'text',
       raw_input: 'нужна няня завтра'
-    }, sessionUser, sc);
+    }, sessionUser);
 
     expect(dm.getActiveState(sessionUser)?.slots.date).toBe('завтра');
     expect(res.presentation.text).toBe(sc.clarificationPrompts?.start_time);
@@ -81,7 +81,7 @@ test.describe('CONTRACT: SC-INTEGRATION-004 Generic Dialogue Channel Contract Su
         slotName: 'start_time',
         slotValue: '15:00'
       }
-    }, sessionUser, sc);
+    }, sessionUser);
 
     expect(dm.getActiveState(sessionUser)?.slots.start_time).toBe('15:00');
   });
@@ -93,7 +93,7 @@ test.describe('CONTRACT: SC-INTEGRATION-004 Generic Dialogue Channel Contract Su
     await adapter.send({
       modality: 'voice',
       transcript: 'до восьми'
-    }, sessionUser, sc);
+    }, sessionUser);
 
     expect(dm.getActiveState(sessionUser)?.slots.end_time).toBe('20:00');
   });
@@ -102,11 +102,11 @@ test.describe('CONTRACT: SC-INTEGRATION-004 Generic Dialogue Channel Contract Su
     const sc = getNannyScenario();
     const adapter = new MockGenericChannelAdapter(engine);
 
-    await adapter.send({ modality: 'text', raw_input: 'завтра' }, sessionUser, sc);
-    await adapter.send({ modality: 'button', payload: { slotName: 'start_time', slotValue: '15:00' } }, sessionUser, sc);
-    await adapter.send({ modality: 'voice', transcript: 'до восьми' }, sessionUser, sc);
-    await adapter.send({ modality: 'button', payload: { slotName: 'children_count', slotValue: 2 } }, sessionUser, sc);
-    await adapter.send({ modality: 'voice', transcript: 'центр' }, sessionUser, sc);
+    await adapter.send({ modality: 'text', raw_input: 'завтра' }, sessionUser);
+    await adapter.send({ modality: 'button', payload: { slotName: 'start_time', slotValue: '15:00' } }, sessionUser);
+    await adapter.send({ modality: 'voice', transcript: 'до восьми' }, sessionUser);
+    await adapter.send({ modality: 'button', payload: { slotName: 'children_count', slotValue: 2 } }, sessionUser);
+    await adapter.send({ modality: 'voice', transcript: 'центр' }, sessionUser);
 
     expect(dm.listContexts(sessionUser).length).toBe(1);
     const ctx = dm.getActiveState(sessionUser);
@@ -235,10 +235,10 @@ test.describe('CONTRACT: SC-INTEGRATION-004 Generic Dialogue Channel Contract Su
     const sc = getNannyScenario();
     const adapter = new MockGenericChannelAdapter(engine);
 
-    await adapter.send({ modality: 'text', raw_input: 'нужна няня' }, sessionUser, sc);
+    await adapter.send({ modality: 'text', raw_input: 'нужна няня' }, sessionUser);
     expect(dm.getActiveState(sessionUser)).toBeDefined();
 
-    const res = await adapter.send({ modality: 'button', payload: { slotName: 'confirmation', slotValue: 'REJECTED' } }, sessionUser, sc);
+    const res = await adapter.send({ modality: 'button', payload: { slotName: 'confirmation', slotValue: 'REJECTED' } }, sessionUser);
 
     expect(res.status).toBe('CANCELLED');
     expect(res.presentation.text).toBe(sc.confirmation?.cancelledMessage);
@@ -249,13 +249,13 @@ test.describe('CONTRACT: SC-INTEGRATION-004 Generic Dialogue Channel Contract Su
     const sc = getNannyScenario();
     const adapter = new MockGenericChannelAdapter(engine);
 
-    await adapter.send({ modality: 'text', raw_input: 'завтра с трех до восьми на двух детей' }, sessionUser, sc);
-    await adapter.send({ modality: 'button', payload: { slotName: 'children_ages', slotValue: '5 лет' } }, sessionUser, sc);
-    await adapter.send({ modality: 'button', payload: { slotName: 'location', slotValue: 'Центр' } }, sessionUser, sc);
-    await adapter.send({ modality: 'button', payload: { slotName: 'requirements', slotValue: 'без требований' } }, sessionUser, sc);
-    await adapter.send({ modality: 'button', payload: { slotName: 'selected_nanny', slotValue: 'xyz-42' } }, sessionUser, sc);
+    await adapter.send({ modality: 'text', raw_input: 'завтра с трех до восьми на двух детей' }, sessionUser);
+    await adapter.send({ modality: 'button', payload: { slotName: 'children_ages', slotValue: '5 лет' } }, sessionUser);
+    await adapter.send({ modality: 'button', payload: { slotName: 'location', slotValue: 'Центр' } }, sessionUser);
+    await adapter.send({ modality: 'button', payload: { slotName: 'requirements', slotValue: 'без требований' } }, sessionUser);
+    await adapter.send({ modality: 'button', payload: { slotName: 'selected_nanny', slotValue: 'xyz-42' } }, sessionUser);
 
-    const res = await adapter.send({ modality: 'button', payload: { slotName: 'confirmation', slotValue: 'CONFIRMED' } }, sessionUser, sc);
+    const res = await adapter.send({ modality: 'button', payload: { slotName: 'confirmation', slotValue: 'CONFIRMED' } }, sessionUser);
 
     expect(res.status).toBe('CONFIRMED');
     expect(dispatcherCalls).toBe(1);
@@ -278,7 +278,7 @@ test.describe('CONTRACT: SC-INTEGRATION-004 Generic Dialogue Channel Contract Su
     // Send Telegram Update
     await botAdapter.handleUpdate({
       message: { from: tgUser, chat: tgChat, text: 'завтра' }
-    }, sc);
+    });
 
     expect(dm.getActiveState(tgIdentity)?.slots.date).toBe('завтра');
 
@@ -291,7 +291,7 @@ test.describe('CONTRACT: SC-INTEGRATION-004 Generic Dialogue Channel Contract Su
     const webUser = { ownerId: 'web-user-1', sessionId: 'web-tab-9' };
     const webAdapter = new MockWebChannelAdapter(engine);
 
-    const res = await webAdapter.submit({ modality: 'text', raw_input: 'послезавтра' }, webUser, sc);
+    const res = await webAdapter.submit({ modality: 'text', raw_input: 'послезавтра' }, webUser);
     expect(dm.getActiveState(webUser)?.slots.date).toBe('послезавтра');
     expect(res.presentation.text).toBe(sc.clarificationPrompts?.start_time);
   });
