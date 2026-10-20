@@ -55,6 +55,7 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
   });
 
   const getScenario = () => nannyScenarioSet.scenarios[0];
+  const startScenario = (user = sessionUser) => dialogueAdapter.getDialogueEngine().startScenario(getScenario().id, user);
 
   test('TB-01: Text Update -> DialogueContext updated & Telegram response sent', async () => {
     const sc = getScenario();
@@ -79,6 +80,7 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
 
   test('TB-02: Button Update (Callback Query) -> DialogueContext updated', async () => {
     const sc = getScenario();
+    startScenario();
 
     const cbData = botAdapter.encodeCallbackData('start_time', '15:00');
     const update: TelegramUpdate = {
@@ -99,6 +101,7 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
 
   test('TB-03: Voice Update -> File downloaded, STT transcribed, slots updated', async () => {
     const sc = getScenario();
+    startScenario();
 
     mockFileProvider.registerFile('voice-file-tb3', 'voices/tb3.ogg', 'audio/ogg', Buffer.from('AUDIO_BUFFER'));
     mockSTT.setTranscript('завтра с трех');
@@ -122,6 +125,7 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
 
   test('TB-04: Mixed channels (Text -> Button -> Voice -> Button -> Voice) in ONE shared DialogueContext', async () => {
     const sc = getScenario();
+    startScenario();
 
     // 1. Text: date
     await botAdapter.handleUpdate({
@@ -164,6 +168,7 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
 
   test('TB-05: Reverse channel switching (Voice -> Button -> Voice)', async () => {
     const sc = getScenario();
+    startScenario();
 
     // 1. Voice: "завтра"
     mockFileProvider.registerFile('v-tb5-1', 'v.ogg', 'audio/ogg', Buffer.from('1'));
@@ -192,6 +197,7 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
 
   test('TB-06: Confirmation by Button displays [Да] [Отмена] and confirms on [Да]', async () => {
     const sc = getScenario();
+    startScenario();
 
     await botAdapter.handleUpdate({ message: { from: testUser, chat: testChat, text: 'завтра с трех до восьми на двух детей' } });
     await botAdapter.handleUpdate({ callback_query: { id: 'c1', from: testUser, message: { chat: testChat }, data: botAdapter.encodeCallbackData('children_ages', '5 лет') } });
@@ -219,6 +225,7 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
 
   test('TB-07: Confirmation by Voice after prompt confirmation displays', async () => {
     const sc = getScenario();
+    startScenario();
 
     await botAdapter.handleUpdate({ message: { from: testUser, chat: testChat, text: 'завтра с трех до восьми на двух детей' } });
     await botAdapter.handleUpdate({ callback_query: { id: 'c1', from: testUser, message: { chat: testChat }, data: botAdapter.encodeCallbackData('children_ages', '5 лет') } });
@@ -254,6 +261,7 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
 
   test('TB-09: Candidate buttons are presented and clicking one resolves correct candidate ID', async () => {
     const sc = getScenario();
+    startScenario();
 
     await botAdapter.handleUpdate({ message: { from: testUser, chat: testChat, text: 'завтра' } });
     const ctx = dm.getActiveState(sessionUser)!;
@@ -282,6 +290,7 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
 
   test('TB-10: STT failure returns transport-level error and preserves DialogueContext', async () => {
     const sc = getScenario();
+    startScenario();
     await botAdapter.handleUpdate({ message: { from: testUser, chat: testChat, text: 'сегодня' } });
 
     mockFileProvider.registerFile('v-fail-stt', 'v.ogg', 'audio/ogg', Buffer.from('data'));
@@ -301,6 +310,7 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
 
   test('TB-11: Telegram download failure returns transport error and preserves DialogueContext', async () => {
     const sc = getScenario();
+    startScenario();
     await botAdapter.handleUpdate({ message: { from: testUser, chat: testChat, text: 'сегодня' } });
 
     mockFileProvider.registerFile('v-dl-fail', 'v.ogg', 'audio/ogg', Buffer.from('data'));
@@ -320,6 +330,7 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
 
   test('TB-12: Callback acknowledgement — answerCallbackQuery is called on every callback query', async () => {
     const sc = getScenario();
+    startScenario();
     await botAdapter.handleUpdate({
       callback_query: { id: 'cb-ack-test', from: testUser, message: { chat: testChat }, data: botAdapter.encodeCallbackData('date', 'завтра') }
     });
@@ -454,6 +465,7 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
 
   test('AT-04: Voice uses the same DialogueContext as Button/Text', async () => {
     const sc = getScenario();
+    startScenario();
     await botAdapter.handleUpdate({ message: { from: testUser, chat: testChat, text: 'завтра' } });
 
     mockFileProvider.registerFile('v-at04', 'v.ogg', 'audio/ogg', Buffer.from('X'));
@@ -468,6 +480,7 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
 
   test('AT-05: Button/Text/Voice all route through the same TelegramDialogueAdapter', async () => {
     const sc = getScenario();
+    startScenario();
     let adapterCalls = 0;
     const origHandle = dialogueAdapter.handleMessage.bind(dialogueAdapter);
     dialogueAdapter.handleMessage = async (...args) => {
