@@ -116,7 +116,6 @@ test.describe('CONTRACT: SC-INTEGRATION-002 Real Telegram Voice Input + STT Inte
 
   test('TV-04: Voice candidate selection using existing VoiceChannel.resolveCandidate()', async () => {
     const sc = getScenario();
-    startScenario();
 
     let resolverCalls = 0;
     const origResolve = vc.resolveCandidate.bind(vc);
@@ -125,7 +124,7 @@ test.describe('CONTRACT: SC-INTEGRATION-002 Real Telegram Voice Input + STT Inte
       return origResolve(...args);
     };
 
-    await adapter.handleMessage({ channel: 'text', raw_input: 'завтра' }, sessionUser);
+    await adapter.handleMessage({ channel: 'text', raw_input: 'нужна няня завтра' }, sessionUser);
     const ctx = dm.getActiveState(sessionUser)!;
     expect(dm.setOffersForContext(ctx.contextId, [
       { id: 'xyz-17', name: 'Ирина', index: 1, status: 'AVAILABLE' },
@@ -367,8 +366,7 @@ test.describe('CONTRACT: SC-INTEGRATION-002 Real Telegram Voice Input + STT Inte
     const sharedAdapter = new TelegramDialogueAdapter(sharedDM, sharedVC);
 
     const u = { ownerId: 'u-at4', sessionId: 's-at4' };
-    sharedAdapter.getDialogueEngine().startScenario(sc.id, u);
-    await sharedAdapter.handleMessage({ channel: 'text', raw_input: 'завтра с трех до восьми на двух детей' }, u);
+    await sharedAdapter.handleMessage({ channel: 'text', raw_input: 'нужна няня завтра с трех до восьми на двух детей' }, u);
     await sharedAdapter.handleMessage({ channel: 'button', button_payload: { slotName: 'children_ages', slotValue: '5 лет' } }, u);
     await sharedAdapter.handleMessage({ channel: 'button', button_payload: { slotName: 'location', slotValue: 'Центр' } }, u);
     await sharedAdapter.handleMessage({ channel: 'button', button_payload: { slotName: 'requirements', slotValue: 'без требований' } }, u);
