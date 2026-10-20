@@ -164,6 +164,7 @@ test.describe('CONTRACT: SC-INTEGRATION-001 Mixed Button / Text / Voice Dialogue
 
   test('Test G — Reverse correction: voice -> button correction', async () => {
     const sc = getScenario();
+    startScenario(sessionUser);
 
     await adapter.handleMessage({ channel: 'voice', transcript: 'в три часа' }, sessionUser);
     expect(dm.getActiveState(sessionUser)?.slots.start_time).toBe('15:00');
@@ -191,6 +192,7 @@ test.describe('CONTRACT: SC-INTEGRATION-001 Mixed Button / Text / Voice Dialogue
 
     // Case 1: Voice by Index («вторая») -> resolves to xyz-42
     const userA = { ownerId: 'user-cand-a', sessionId: 'sess-a' };
+    startScenario(userA);
     await adapter.handleMessage({ channel: 'text', raw_input: 'завтра' }, userA);
     attachCandidates(userA, arbitraryCandidates);
 
@@ -200,6 +202,7 @@ test.describe('CONTRACT: SC-INTEGRATION-001 Mixed Button / Text / Voice Dialogue
 
     // Case 2: Voice by Name («Ольга») -> resolves to xyz-42
     const userB = { ownerId: 'user-cand-b', sessionId: 'sess-b' };
+    startScenario(userB);
     await adapter.handleMessage({ channel: 'text', raw_input: 'завтра' }, userB);
     attachCandidates(userB, arbitraryCandidates);
 
@@ -208,6 +211,7 @@ test.describe('CONTRACT: SC-INTEGRATION-001 Mixed Button / Text / Voice Dialogue
 
     // Case 3: Text by Index («вариант 1») -> resolves to xyz-17
     const userC = { ownerId: 'user-cand-c', sessionId: 'sess-c' };
+    startScenario(userC);
     await adapter.handleMessage({ channel: 'text', raw_input: 'завтра' }, userC);
     attachCandidates(userC, arbitraryCandidates);
 
@@ -216,6 +220,7 @@ test.describe('CONTRACT: SC-INTEGRATION-001 Mixed Button / Text / Voice Dialogue
 
     // Case 4: Button by exact ID
     const userD = { ownerId: 'user-cand-d', sessionId: 'sess-d' };
+    startScenario(userD);
     await adapter.handleMessage({ channel: 'text', raw_input: 'завтра' }, userD);
     attachCandidates(userD, arbitraryCandidates);
 
