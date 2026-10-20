@@ -39,6 +39,7 @@ test.describe('CONTRACT: SC-INTEGRATION-001 Mixed Button / Text / Voice Dialogue
   });
 
   const getScenario = () => nannyScenarioSet.scenarios[0];
+  const startScenario = (user: { ownerId: string; sessionId: string }) => adapter.getDialogueEngine().startScenario(getScenario().id, user);
 
   const attachCandidates = (userId: typeof sessionUser, candidates: any[]) => {
     const ctx = dm.getActiveState(userId);
@@ -49,6 +50,8 @@ test.describe('CONTRACT: SC-INTEGRATION-001 Mixed Button / Text / Voice Dialogue
 
   test('Test A — Buttons only: Полный заказ только кнопками', async () => {
     const sc = getScenario();
+
+    startScenario(sessionUser);
 
     await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'date', slotValue: 'сегодня' } }, sessionUser);
     await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'start_time', slotValue: '15:00' } }, sessionUser);
@@ -96,6 +99,8 @@ test.describe('CONTRACT: SC-INTEGRATION-001 Mixed Button / Text / Voice Dialogue
   test('Test C — Button -> Voice: Начать кнопками, продолжить voice', async () => {
     const sc = getScenario();
 
+    startScenario(sessionUser);
+
     await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'date', slotValue: 'завтра' } }, sessionUser);
     await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'start_time', slotValue: '15:00' } }, sessionUser);
     await adapter.handleMessage({ channel: 'voice', transcript: 'до восьми вечера' }, sessionUser);
@@ -140,6 +145,8 @@ test.describe('CONTRACT: SC-INTEGRATION-001 Mixed Button / Text / Voice Dialogue
 
   test('Test F — Correction: button -> voice correction («нет, давайте в четыре»)', async () => {
     const sc = getScenario();
+
+    startScenario(sessionUser);
 
     // Button sets 15:00
     await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'start_time', slotValue: '15:00' } }, sessionUser);
@@ -218,6 +225,7 @@ test.describe('CONTRACT: SC-INTEGRATION-001 Mixed Button / Text / Voice Dialogue
     const sc = getScenario();
 
     const fillSlots = async (user: { ownerId: string; sessionId: string }) => {
+      startScenario(user);
       await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'date', slotValue: 'завтра' } }, user);
       await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'start_time', slotValue: '15:00' } }, user);
       await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'end_time', slotValue: '20:00' } }, user);
@@ -254,6 +262,7 @@ test.describe('CONTRACT: SC-INTEGRATION-001 Mixed Button / Text / Voice Dialogue
 
     // 1. Button cancel
     const userBtn = { ownerId: 'u-can-btn', sessionId: 's-can-btn' };
+    startScenario(userBtn);
     await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'date', slotValue: 'завтра' } }, userBtn);
     const resBtn = await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'confirmation', slotValue: 'REJECTED' } }, userBtn);
     expect(resBtn.status).toBe('CANCELLED');
@@ -276,6 +285,8 @@ test.describe('CONTRACT: SC-INTEGRATION-001 Mixed Button / Text / Voice Dialogue
 
   test('Test K — Arbitrary channel switching: button -> voice -> button -> text -> voice -> button', async () => {
     const sc = getScenario();
+
+    startScenario(sessionUser);
 
     await adapter.handleMessage({ channel: 'button', button_payload: { slotName: 'date', slotValue: 'завтра' } }, sessionUser);
     await adapter.handleMessage({ channel: 'voice', transcript: 'с трех' }, sessionUser);
