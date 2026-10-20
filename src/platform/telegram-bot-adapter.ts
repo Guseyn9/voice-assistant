@@ -1,4 +1,3 @@
-import { type ScenarioDefinition } from './voice-channel';
 import {
   type DialoguePresentation,
   type DialoguePresentationAction,
@@ -173,8 +172,7 @@ export class TelegramBotAdapter {
 
   private async processDialogue(
     input: DialogueInput,
-    identity: SessionIdentity,
-    scenario?: ScenarioDefinition
+    identity: SessionIdentity
   ) {
     if (this.telegramDialogueAdapter) {
       const channel = (input.modality || input.channel || 'text') as 'button' | 'text' | 'voice';
@@ -187,12 +185,12 @@ export class TelegramBotAdapter {
           slotValue: input.payload.slotValue,
           action: input.payload.action
         } : undefined
-      }, identity, scenario);
+      }, identity);
     }
-    return this.dialogueEngine.processInput(input, identity, scenario);
+    return this.dialogueEngine.processInput(input, identity);
   }
 
-  public async handleUpdate(update: TelegramUpdate, optionalScenario?: ScenarioDefinition): Promise<void> {
+  public async handleUpdate(update: TelegramUpdate): Promise<void> {
     const { identity, chatId } = this.extractIdentity(update);
 
     // 1. Handle Callback Query
@@ -232,7 +230,7 @@ export class TelegramBotAdapter {
         };
       }
 
-      const result = await this.processDialogue(dialogueInput, identity, optionalScenario);
+      const result = await this.processDialogue(dialogueInput, identity);
       await this.sendTelegramResponse(chatId, result?.presentation);
       return;
     }
@@ -262,7 +260,7 @@ export class TelegramBotAdapter {
           modality: 'voice',
           transcript: voiceResult.normalizedInput.transcript
         };
-        const result = await this.processDialogue(dialogueInput, identity, optionalScenario);
+        const result = await this.processDialogue(dialogueInput, identity);
         await this.sendTelegramResponse(chatId, result?.presentation);
       }
       return;
@@ -300,7 +298,7 @@ export class TelegramBotAdapter {
         raw_input: update.message.text
       };
 
-      const result = await this.processDialogue(dialogueInput, identity, optionalScenario);
+      const result = await this.processDialogue(dialogueInput, identity);
       await this.sendTelegramResponse(chatId, result?.presentation);
       return;
     }

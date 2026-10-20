@@ -55,6 +55,7 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
   });
 
   const getScenario = () => nannyScenarioSet.scenarios[0];
+  const startScenario = (user = sessionUser) => dialogueAdapter.getDialogueEngine().startScenario(getScenario().id, user);
 
   test('TB-01: Text Update -> DialogueContext updated & Telegram response sent', async () => {
     const sc = getScenario();
@@ -66,7 +67,7 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
       }
     };
 
-    await botAdapter.handleUpdate(update, sc);
+    await botAdapter.handleUpdate(update);
 
     const ctx = dm.getActiveState(sessionUser);
     expect(ctx?.slots.date).toBe('завтра');
@@ -79,6 +80,7 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
 
   test('TB-02: Button Update (Callback Query) -> DialogueContext updated', async () => {
     const sc = getScenario();
+    startScenario();
 
     const cbData = botAdapter.encodeCallbackData('start_time', '15:00');
     const update: TelegramUpdate = {
@@ -90,7 +92,7 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
       }
     };
 
-    await botAdapter.handleUpdate(update, sc);
+    await botAdapter.handleUpdate(update);
 
     const ctx = dm.getActiveState(sessionUser);
     expect(ctx?.slots.start_time).toBe('15:00');
@@ -99,6 +101,7 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
 
   test('TB-03: Voice Update -> File downloaded, STT transcribed, slots updated', async () => {
     const sc = getScenario();
+    startScenario();
 
     mockFileProvider.registerFile('voice-file-tb3', 'voices/tb3.ogg', 'audio/ogg', Buffer.from('AUDIO_BUFFER'));
     mockSTT.setTranscript('завтра с трех');
@@ -113,7 +116,7 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
       }
     };
 
-    await botAdapter.handleUpdate(update, sc);
+    await botAdapter.handleUpdate(update);
 
     const ctx = dm.getActiveState(sessionUser);
     expect(ctx?.slots.date).toBe('завтра');
@@ -122,35 +125,36 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
 
   test('TB-04: Mixed channels (Text -> Button -> Voice -> Button -> Voice) in ONE shared DialogueContext', async () => {
     const sc = getScenario();
+    startScenario();
 
     // 1. Text: date
     await botAdapter.handleUpdate({
       message: { from: testUser, chat: testChat, text: 'завтра' }
-    }, sc);
+    });
 
     // 2. Button: start_time
     await botAdapter.handleUpdate({
       callback_query: { id: 'cb-1', from: testUser, message: { chat: testChat }, data: botAdapter.encodeCallbackData('start_time', '15:00') }
-    }, sc);
+    });
 
     // 3. Voice: end_time
     mockFileProvider.registerFile('v-tb4-end', 'v1.ogg', 'audio/ogg', Buffer.from('A'));
     mockSTT.setTranscript('до восьми');
     await botAdapter.handleUpdate({
       message: { from: testUser, chat: testChat, voice: { file_id: 'v-tb4-end' } }
-    }, sc);
+    });
 
     // 4. Button: children_count
     await botAdapter.handleUpdate({
       callback_query: { id: 'cb-2', from: testUser, message: { chat: testChat }, data: botAdapter.encodeCallbackData('children_count', 2) }
-    }, sc);
+    });
 
     // 5. Voice: location
     mockFileProvider.registerFile('v-tb4-loc', 'v2.ogg', 'audio/ogg', Buffer.from('B'));
     mockSTT.setTranscript('центр');
     await botAdapter.handleUpdate({
       message: { from: testUser, chat: testChat, voice: { file_id: 'v-tb4-loc' } }
-    }, sc);
+    });
 
     // Assert: Single unified context
     expect(dm.listContexts(sessionUser).length).toBe(1);
@@ -164,25 +168,26 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
 
   test('TB-05: Reverse channel switching (Voice -> Button -> Voice)', async () => {
     const sc = getScenario();
+    startScenario();
 
     // 1. Voice: "завтра"
     mockFileProvider.registerFile('v-tb5-1', 'v.ogg', 'audio/ogg', Buffer.from('1'));
     mockSTT.setTranscript('завтра');
     await botAdapter.handleUpdate({
       message: { from: testUser, chat: testChat, voice: { file_id: 'v-tb5-1' } }
-    }, sc);
+    });
 
     // 2. Button: 15:00
     await botAdapter.handleUpdate({
       callback_query: { id: 'cb-tb5', from: testUser, message: { chat: testChat }, data: botAdapter.encodeCallbackData('start_time', '15:00') }
-    }, sc);
+    });
 
     // 3. Voice: "до восьми"
     mockFileProvider.registerFile('v-tb5-2', 'v.ogg', 'audio/ogg', Buffer.from('2'));
     mockSTT.setTranscript('до восьми');
     await botAdapter.handleUpdate({
       message: { from: testUser, chat: testChat, voice: { file_id: 'v-tb5-2' } }
-    }, sc);
+    });
 
     const ctx = dm.getActiveState(sessionUser);
     expect(ctx?.slots.date).toBe('завтра');
@@ -192,12 +197,13 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
 
   test('TB-06: Confirmation by Button displays [Да] [Отмена] and confirms on [Да]', async () => {
     const sc = getScenario();
+    startScenario();
 
-    await botAdapter.handleUpdate({ message: { from: testUser, chat: testChat, text: 'завтра с трех до восьми на двух детей' } }, sc);
-    await botAdapter.handleUpdate({ callback_query: { id: 'c1', from: testUser, message: { chat: testChat }, data: botAdapter.encodeCallbackData('children_ages', '5 лет') } }, sc);
-    await botAdapter.handleUpdate({ callback_query: { id: 'c2', from: testUser, message: { chat: testChat }, data: botAdapter.encodeCallbackData('location', 'Центр') } }, sc);
-    await botAdapter.handleUpdate({ callback_query: { id: 'c3', from: testUser, message: { chat: testChat }, data: botAdapter.encodeCallbackData('requirements', 'без требований') } }, sc);
-    await botAdapter.handleUpdate({ callback_query: { id: 'c4', from: testUser, message: { chat: testChat }, data: botAdapter.encodeCallbackData('selected_nanny', 'xyz-42') } }, sc);
+    await botAdapter.handleUpdate({ message: { from: testUser, chat: testChat, text: 'завтра с трех до восьми на двух детей' } });
+    await botAdapter.handleUpdate({ callback_query: { id: 'c1', from: testUser, message: { chat: testChat }, data: botAdapter.encodeCallbackData('children_ages', '5 лет') } });
+    await botAdapter.handleUpdate({ callback_query: { id: 'c2', from: testUser, message: { chat: testChat }, data: botAdapter.encodeCallbackData('location', 'Центр') } });
+    await botAdapter.handleUpdate({ callback_query: { id: 'c3', from: testUser, message: { chat: testChat }, data: botAdapter.encodeCallbackData('requirements', 'без требований') } });
+    await botAdapter.handleUpdate({ callback_query: { id: 'c4', from: testUser, message: { chat: testChat }, data: botAdapter.encodeCallbackData('selected_nanny', 'xyz-42') } });
 
     // Verify confirmation prompt was sent with inline keyboard
     const promptMsg = telegramClient.getLastMessage();
@@ -211,7 +217,7 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
     // Click [Да]
     await botAdapter.handleUpdate({
       callback_query: { id: 'c-yes', from: testUser, message: { chat: testChat }, data: buttons[0].callback_data }
-    }, sc);
+    });
 
     expect(dispatcherCalls).toBe(1);
     expect(telegramClient.getLastMessage()?.text).toBe('Заказ подтверждён.');
@@ -219,19 +225,20 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
 
   test('TB-07: Confirmation by Voice after prompt confirmation displays', async () => {
     const sc = getScenario();
+    startScenario();
 
-    await botAdapter.handleUpdate({ message: { from: testUser, chat: testChat, text: 'завтра с трех до восьми на двух детей' } }, sc);
-    await botAdapter.handleUpdate({ callback_query: { id: 'c1', from: testUser, message: { chat: testChat }, data: botAdapter.encodeCallbackData('children_ages', '5 лет') } }, sc);
-    await botAdapter.handleUpdate({ callback_query: { id: 'c2', from: testUser, message: { chat: testChat }, data: botAdapter.encodeCallbackData('location', 'Центр') } }, sc);
-    await botAdapter.handleUpdate({ callback_query: { id: 'c3', from: testUser, message: { chat: testChat }, data: botAdapter.encodeCallbackData('requirements', 'без требований') } }, sc);
-    await botAdapter.handleUpdate({ callback_query: { id: 'c4', from: testUser, message: { chat: testChat }, data: botAdapter.encodeCallbackData('selected_nanny', 'xyz-42') } }, sc);
+    await botAdapter.handleUpdate({ message: { from: testUser, chat: testChat, text: 'завтра с трех до восьми на двух детей' } });
+    await botAdapter.handleUpdate({ callback_query: { id: 'c1', from: testUser, message: { chat: testChat }, data: botAdapter.encodeCallbackData('children_ages', '5 лет') } });
+    await botAdapter.handleUpdate({ callback_query: { id: 'c2', from: testUser, message: { chat: testChat }, data: botAdapter.encodeCallbackData('location', 'Центр') } });
+    await botAdapter.handleUpdate({ callback_query: { id: 'c3', from: testUser, message: { chat: testChat }, data: botAdapter.encodeCallbackData('requirements', 'без требований') } });
+    await botAdapter.handleUpdate({ callback_query: { id: 'c4', from: testUser, message: { chat: testChat }, data: botAdapter.encodeCallbackData('selected_nanny', 'xyz-42') } });
 
     mockFileProvider.registerFile('v-conf', 'v.ogg', 'audio/ogg', Buffer.from('CONF'));
     mockSTT.setTranscript('да, подтверждаю');
 
     await botAdapter.handleUpdate({
       message: { from: testUser, chat: testChat, voice: { file_id: 'v-conf' } }
-    }, sc);
+    });
 
     expect(dispatcherCalls).toBe(1);
     expect(telegramClient.getLastMessage()?.text).toBe('Заказ подтверждён.');
@@ -239,13 +246,13 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
 
   test('TB-08: Cancellation by Button', async () => {
     const sc = getScenario();
-    await botAdapter.handleUpdate({ message: { from: testUser, chat: testChat, text: 'нужна няня' } }, sc);
+    await botAdapter.handleUpdate({ message: { from: testUser, chat: testChat, text: 'нужна няня' } });
     expect(dm.getActiveState(sessionUser)).toBeDefined();
 
     // Click [Отмена]
     await botAdapter.handleUpdate({
       callback_query: { id: 'c-cancel', from: testUser, message: { chat: testChat }, data: botAdapter.encodeCallbackData('confirmation', 'REJECTED') }
-    }, sc);
+    });
 
     expect(dm.getActiveState(sessionUser)).toBeNull();
     expect(dispatcherCalls).toBe(0);
@@ -254,15 +261,16 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
 
   test('TB-09: Candidate buttons are presented and clicking one resolves correct candidate ID', async () => {
     const sc = getScenario();
+    startScenario();
 
-    await botAdapter.handleUpdate({ message: { from: testUser, chat: testChat, text: 'завтра' } }, sc);
+    await botAdapter.handleUpdate({ message: { from: testUser, chat: testChat, text: 'завтра' } });
     const ctx = dm.getActiveState(sessionUser)!;
     expect(dm.setOffersForContext(ctx.contextId, [
       { id: 'xyz-17', name: 'Ирина', index: 1, status: 'AVAILABLE' },
       { id: 'xyz-42', name: 'Ольга', index: 2, status: 'AVAILABLE' }
     ] as any, sessionUser)).toBe(true);
 
-    await botAdapter.handleUpdate({ message: { from: testUser, chat: testChat, text: 'с трех' } }, sc);
+    await botAdapter.handleUpdate({ message: { from: testUser, chat: testChat, text: 'с трех' } });
 
     const msg = telegramClient.getLastMessage();
     expect(msg?.options?.reply_markup?.inline_keyboard).toBeDefined();
@@ -275,21 +283,22 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
     // Click second candidate (xyz-42)
     await botAdapter.handleUpdate({
       callback_query: { id: 'cb-cand2', from: testUser, message: { chat: testChat }, data: candButtons[1].callback_data }
-    }, sc);
+    });
 
     expect(dm.getActiveState(sessionUser)?.slots.selected_nanny).toBe('xyz-42');
   });
 
   test('TB-10: STT failure returns transport-level error and preserves DialogueContext', async () => {
     const sc = getScenario();
-    await botAdapter.handleUpdate({ message: { from: testUser, chat: testChat, text: 'сегодня' } }, sc);
+    startScenario();
+    await botAdapter.handleUpdate({ message: { from: testUser, chat: testChat, text: 'сегодня' } });
 
     mockFileProvider.registerFile('v-fail-stt', 'v.ogg', 'audio/ogg', Buffer.from('data'));
     mockSTT.setFailure(new Error('STT_UNAVAILABLE'));
 
     await botAdapter.handleUpdate({
       message: { from: testUser, chat: testChat, voice: { file_id: 'v-fail-stt' } }
-    }, sc);
+    });
 
     const msg = telegramClient.getLastMessage();
     expect(msg?.text).toContain('Ошибка голосового сообщения: STT_UNAVAILABLE');
@@ -301,14 +310,15 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
 
   test('TB-11: Telegram download failure returns transport error and preserves DialogueContext', async () => {
     const sc = getScenario();
-    await botAdapter.handleUpdate({ message: { from: testUser, chat: testChat, text: 'сегодня' } }, sc);
+    startScenario();
+    await botAdapter.handleUpdate({ message: { from: testUser, chat: testChat, text: 'сегодня' } });
 
     mockFileProvider.registerFile('v-dl-fail', 'v.ogg', 'audio/ogg', Buffer.from('data'));
     mockFileProvider.shouldFailDownload = true;
 
     await botAdapter.handleUpdate({
       message: { from: testUser, chat: testChat, voice: { file_id: 'v-dl-fail' } }
-    }, sc);
+    });
 
     const msg = telegramClient.getLastMessage();
     expect(msg?.text).toContain('TELEGRAM_FILE_DOWNLOAD_FAILED');
@@ -320,9 +330,10 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
 
   test('TB-12: Callback acknowledgement — answerCallbackQuery is called on every callback query', async () => {
     const sc = getScenario();
+    startScenario();
     await botAdapter.handleUpdate({
       callback_query: { id: 'cb-ack-test', from: testUser, message: { chat: testChat }, data: botAdapter.encodeCallbackData('date', 'завтра') }
-    }, sc);
+    });
 
     expect(telegramClient.answeredCallbacks).toContain('cb-ack-test');
   });
@@ -454,11 +465,12 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
 
   test('AT-04: Voice uses the same DialogueContext as Button/Text', async () => {
     const sc = getScenario();
-    await botAdapter.handleUpdate({ message: { from: testUser, chat: testChat, text: 'завтра' } }, sc);
+    startScenario();
+    await botAdapter.handleUpdate({ message: { from: testUser, chat: testChat, text: 'завтра' } });
 
     mockFileProvider.registerFile('v-at04', 'v.ogg', 'audio/ogg', Buffer.from('X'));
     mockSTT.setTranscript('с трех');
-    await botAdapter.handleUpdate({ message: { from: testUser, chat: testChat, voice: { file_id: 'v-at04' } } }, sc);
+    await botAdapter.handleUpdate({ message: { from: testUser, chat: testChat, voice: { file_id: 'v-at04' } } });
 
     const contexts = dm.listContexts(sessionUser);
     expect(contexts.length).toBe(1);
@@ -468,6 +480,7 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
 
   test('AT-05: Button/Text/Voice all route through the same TelegramDialogueAdapter', async () => {
     const sc = getScenario();
+    startScenario();
     let adapterCalls = 0;
     const origHandle = dialogueAdapter.handleMessage.bind(dialogueAdapter);
     dialogueAdapter.handleMessage = async (...args) => {
@@ -475,11 +488,11 @@ test.describe('CONTRACT: SC-INTEGRATION-003 Production Telegram Bot Voice Adapte
       return origHandle(...args);
     };
 
-    await botAdapter.handleUpdate({ message: { from: testUser, chat: testChat, text: 'завтра' } }, sc);
-    await botAdapter.handleUpdate({ callback_query: { id: 'c', from: testUser, message: { chat: testChat }, data: botAdapter.encodeCallbackData('start_time', '15:00') } }, sc);
+    await botAdapter.handleUpdate({ message: { from: testUser, chat: testChat, text: 'завтра' } });
+    await botAdapter.handleUpdate({ callback_query: { id: 'c', from: testUser, message: { chat: testChat }, data: botAdapter.encodeCallbackData('start_time', '15:00') } });
     mockFileProvider.registerFile('v-at05', 'v.ogg', 'audio/ogg', Buffer.from('Y'));
     mockSTT.setTranscript('до восьми');
-    await botAdapter.handleUpdate({ message: { from: testUser, chat: testChat, voice: { file_id: 'v-at05' } } }, sc);
+    await botAdapter.handleUpdate({ message: { from: testUser, chat: testChat, voice: { file_id: 'v-at05' } } });
 
     expect(adapterCalls).toBe(3);
   });
