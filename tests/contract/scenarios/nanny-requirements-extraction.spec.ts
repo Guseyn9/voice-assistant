@@ -27,8 +27,14 @@ test.describe('Nanny requirements slot extraction', () => {
     expect(dm.getActiveState(identity)?.slots.requirements).toBe('без вредных привычек');
   });
 
-  test('preserves a request for pedagogical education', async () => {
+  test('preserves a request for pedagogical education in instrumental case', async () => {
     await voice.handleIncomingVoice('нужна няня с педагогическим образованием', identity);
+
+    expect(dm.getActiveState(identity)?.slots.requirements).toBe('педагогическое образование');
+  });
+
+  test('recognizes pedagogical education in genitive case', async () => {
+    await voice.handleIncomingVoice('нужна няня педагогического образования', identity);
 
     expect(dm.getActiveState(identity)?.slots.requirements).toBe('педагогическое образование');
   });
