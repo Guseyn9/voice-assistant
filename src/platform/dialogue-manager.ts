@@ -154,11 +154,25 @@ export class DialogueStateManager {
 
   public getActiveState(identity: SessionIdentity): DialogueContext | null {
     this.validateIdentity(identity);
-    if (!this.activeContextId) return null;
-    const ctx = this.contexts.get(this.activeContextId);
-    if (!ctx || ctx.ownerId !== identity.ownerId || ctx.sessionId !== identity.sessionId) {
-      return null;
-    }
+
+    // activeContextId is retained for backward compatibility, but it is global.
+    // Resolve the active context within the requested identity first so one
+    // session cannot hide another session's in-progress dialogue.
+    const pointed = this.activeContextId ? this.contexts.get(this.activeContextId) : undefined;
+    const ctx = pointed &&
+      pointed.ownerId === identity.ownerId &&
+      pointed.sessionId === identity.sessionId &&
+      pointed.status === 'WAITING_FOR_SLOT'
+      ? pointed
+      : Array.from(this.contexts.values())
+          .filter(candidate =>
+            candidate.ownerId === identity.ownerId &&
+            candidate.sessionId === identity.sessionId &&
+            candidate.status === 'WAITING_FOR_SLOT'
+          )
+          .sort((a, b) => b.updatedAt - a.updatedAt)[0];
+
+    if (!ctx) return null;
     return {
       ...ctx,
       slots: { ...ctx.slots },
