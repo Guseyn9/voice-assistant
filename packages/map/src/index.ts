@@ -10,6 +10,7 @@ export {
 } from "./MapMapper"
 export type {
     MapMapper,
+    MapOrderId,
     MapOrderSelectPayload,
     MapOrderSelectedPayload
 } from "./MapMapper"

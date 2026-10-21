@@ -35,3 +35,8 @@ No existing Platform Core package or Voice Channel implementation is changed.
 The uploadable scenario fixture is `scenarios/map-order-selection.json`. In the Voice Demo Validation Bench, choose the JSON-file scenario source and upload this file. It uses the existing ScenarioSet v1 contract and checks the `driver.order.select` → `driver.order.selected` vocabulary while preserving the string order ID `00123`. The contract test loads the fixture through `JsonScenarioProvider`, the same validator used for uploaded scenario files.
 
 This fixture validates the scenario contract; it does not replace a live Taxi UI/backend end-to-end test.
+
+
+## Raw order ID compatibility
+
+Taxi's `b_id` can arrive as either a string or a number. The platform mapper therefore accepts finite numbers and non-empty strings, preserving the original type and value (including string leading zeros and numeric zero). It rejects blank strings, non-finite numbers, `null`, and `undefined`. Do not stringify IDs at the channel boundary; application adapters may perform domain-specific normalization only where explicitly required.

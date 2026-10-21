@@ -34,7 +34,7 @@ class RecordingInteraction implements InteractionContract {
 }
 
 test.describe("Map Channel contract", () => {
-    test("maps order selection to the existing Taxi action and preserves raw order ID", async () => {
+    test("maps string order selection without normalizing leading zeros", async () => {
         const interaction = new RecordingInteraction()
         const channel = new MapChannel({
             interaction,
@@ -56,12 +56,36 @@ test.describe("Map Channel contract", () => {
         })
     })
 
-    test("does not dispatch an invalid order ID", async () => {
+    test("preserves a numeric Taxi order ID as a number", async () => {
+        const interaction = new RecordingInteraction()
+        const channel = new MapChannel({ interaction })
+
+        await channel.selectOrder(12345)
+
+        expect(interaction.actions).toHaveLength(1)
+        expect(interaction.actions[0].payload).toEqual({ orderId: 12345 })
+        expect(typeof (interaction.actions[0].payload as { orderId: unknown }).orderId).toBe("number")
+    })
+
+    test("accepts numeric zero without treating it as a missing ID", async () => {
+        const interaction = new RecordingInteraction()
+        const channel = new MapChannel({ interaction })
+
+        await channel.selectOrder(0)
+
+        expect(interaction.actions).toHaveLength(1)
+        expect(interaction.actions[0].payload).toEqual({ orderId: 0 })
+    })
+
+    test("does not dispatch invalid order IDs", async () => {
         const interaction = new RecordingInteraction()
         const channel = new MapChannel({ interaction })
 
         await channel.selectOrder("   ")
         await channel.selectOrder(undefined)
+        await channel.selectOrder(null)
+        await channel.selectOrder(Number.NaN)
+        await channel.selectOrder(Number.POSITIVE_INFINITY)
 
         expect(interaction.actions).toHaveLength(0)
     })
