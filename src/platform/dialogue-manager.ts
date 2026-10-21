@@ -162,13 +162,13 @@ export class DialogueStateManager {
     const ctx = pointed &&
       pointed.ownerId === identity.ownerId &&
       pointed.sessionId === identity.sessionId &&
-      pointed.status === 'WAITING_FOR_SLOT'
+      !['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(pointed.status)
       ? pointed
       : Array.from(this.contexts.values())
           .filter(candidate =>
             candidate.ownerId === identity.ownerId &&
             candidate.sessionId === identity.sessionId &&
-            candidate.status === 'WAITING_FOR_SLOT'
+            !['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(candidate.status)
           )
           .sort((a, b) => b.updatedAt - a.updatedAt)[0];
 
