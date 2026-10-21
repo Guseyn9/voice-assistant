@@ -1,0 +1,45 @@
+name: Seller Voice Smoke Test
+
+on:
+  pull_request:
+    paths:
+      - 'src/App.tsx'
+      - 'src/seller-voice.css'
+      - 'src/platform/**'
+      - 'tests/e2e/seller-web-voice.spec.ts'
+      - 'scenario-sc-001-vegetable-stall.json'
+      - 'index.html'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'playwright.config.ts'
+      - '.github/workflows/seller-voice-smoke.yml'
+  workflow_dispatch:
+
+jobs:
+  seller-voice-smoke:
+    name: Seller voice UI smoke tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run only seller voice UI tests
+        run: npx playwright test tests/e2e/seller-web-voice.spec.ts --workers=1 --reporter=list,json
+      - name: Upload Playwright diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: seller-voice-smoke-diagnostics
+          path: |
+            playwright-report/
+            test-results/
+            playwright-report-platform-012.json
+          if-no-files-found: warn
+          retention-days: 14
