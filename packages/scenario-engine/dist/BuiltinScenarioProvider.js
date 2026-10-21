@@ -6,7 +6,7 @@
  * built-in scenarios live in JSON now — the Runner does not.
  */
 import { validateScenarioSet } from "./ScenarioSetValidator";
-import builtinScenarioSetJson from "./scenarios/builtin.json";
+import builtinScenarioSetJson from "./scenarios/builtin.json" with { type: "json" };
 /**
  * Synchronous helper used where an async load() is inconvenient
  * (e.g. wiring up the registry at app bootstrap). Goes through the
