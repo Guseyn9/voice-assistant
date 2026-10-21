@@ -277,6 +277,21 @@ test.describe('CONTRACT: SC-INTEGRATION-005 Generic Dialogue Scenario Routing & 
     expect(ctxFollowUp?.contextId).toBe(ctxInitial?.contextId);
   });
 
+  test('SR-16: Another session opening a dialogue does not hide the first session context', async () => {
+    const firstUser = { ownerId: 'session-isolation-user-1', sessionId: 'session-isolation-1' };
+    const secondUser = { ownerId: 'session-isolation-user-2', sessionId: 'session-isolation-2' };
+
+    await engine.processInput({ modality: 'text', raw_input: 'нужна няня завтра' }, firstUser);
+    const firstContextId = dm.getActiveState(firstUser)?.contextId;
+    expect(firstContextId).toBeDefined();
+
+    await engine.processInput({ modality: 'text', raw_input: 'нужна няня сегодня' }, secondUser);
+
+    expect(dm.getActiveState(firstUser)?.contextId).toBe(firstContextId);
+    expect(dm.getActiveState(firstUser)?.slots.date).toBe('завтра');
+    expect(dm.getActiveState(secondUser)?.slots.date).toBe('сегодня');
+  });
+
   test('SR-14: Unknown context scenarioId does not fall back to intent', async () => {
     const invalidUser = { ownerId: 'invalid-scenario-user', sessionId: 'invalid-scenario-session' };
     dm.createContext(
@@ -294,6 +309,28 @@ test.describe('CONTRACT: SC-INTEGRATION-005 Generic Dialogue Scenario Routing & 
     expect(res.status).toBe('SCENARIO_NOT_FOUND');
     expect(dm.getActiveState(invalidUser)?.scenarioId).toBe('scenario-that-is-not-registered');
     expect(dm.getActiveState(invalidUser)?.slots.date).toBeUndefined();
+  });
+
+  test('SR-15: Context without scenarioId fails closed instead of routing into an unrelated scenario', async () => {
+    const legacyUser = { ownerId: 'legacy-context-user', sessionId: 'legacy-context-session' };
+    const legacyContext = dm.createContext(
+      'LEGACY_INTENT',
+      {},
+      ['legacy_slot'],
+      'legacy.action',
+      { legacy_slot: 'Укажите старое значение' },
+      legacyUser
+    );
+
+    const res = await engine.processInput(
+      { modality: 'text', raw_input: 'нужна няня завтра' },
+      legacyUser
+    );
+
+    expect(res.status).toBe('SCENARIO_NOT_FOUND');
+    expect(dm.getActiveState(legacyUser)?.contextId).toBe(legacyContext.contextId);
+    expect(dm.getActiveState(legacyUser)?.scenarioId).toBeUndefined();
+    expect(dm.getActiveState(legacyUser)?.slots.date).toBeUndefined();
   });
 
   // Architectural Static Checks (AT-09 .. AT-13)

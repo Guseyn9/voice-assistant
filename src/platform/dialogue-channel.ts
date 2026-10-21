@@ -151,7 +151,19 @@ export class DialogueEngine {
     let ctx = this.dm.getActiveState(identity);
 
     if (!activeScenario) {
-      if (ctx && ctx.scenarioId) {
+      if (ctx) {
+        // Existing contexts must carry an explicit scenario binding. Never route a
+        // message into a legacy/unbound context by resolving a fresh intent.
+        if (!ctx.scenarioId) {
+          return {
+            status: 'SCENARIO_NOT_FOUND',
+            contextId: ctx.contextId,
+            presentation: {
+              text: 'Active dialogue has no scenario binding.'
+            }
+          };
+        }
+
         // Rule A: Existing context drives the scenario
         activeScenario = this.vc.getScenarioById(ctx.scenarioId);
       } else {

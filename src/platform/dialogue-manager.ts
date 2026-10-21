@@ -154,11 +154,31 @@ export class DialogueStateManager {
 
   public getActiveState(identity: SessionIdentity): DialogueContext | null {
     this.validateIdentity(identity);
-    if (!this.activeContextId) return null;
-    const ctx = this.contexts.get(this.activeContextId);
-    if (!ctx || ctx.ownerId !== identity.ownerId || ctx.sessionId !== identity.sessionId) {
-      return null;
+
+    // The pointer is global for compatibility. If it points at another session,
+    // look up this session's own waiting context instead of hiding it. If it is
+    // empty or terminal for this session, preserve the original null semantics so
+    // inspection helpers can return the most recently updated terminal context.
+    const pointed = this.activeContextId ? this.contexts.get(this.activeContextId) : undefined;
+    let ctx: DialogueContext | undefined;
+
+    if (pointed &&
+        pointed.ownerId === identity.ownerId &&
+        pointed.sessionId === identity.sessionId) {
+      if (!['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(pointed.status)) {
+        ctx = pointed;
+      }
+    } else if (pointed) {
+      ctx = Array.from(this.contexts.values())
+        .filter(candidate =>
+          candidate.ownerId === identity.ownerId &&
+          candidate.sessionId === identity.sessionId &&
+          candidate.status === 'WAITING_FOR_SLOT'
+        )
+        .sort((a, b) => b.updatedAt - a.updatedAt)[0];
     }
+
+    if (!ctx) return null;
     return {
       ...ctx,
       slots: { ...ctx.slots },
@@ -166,7 +186,6 @@ export class DialogueStateManager {
       offers: ctx.offers ? [...ctx.offers.map(o => ({ ...o }))] : undefined
     };
   }
-
   /**
    * Read the currently active context, or the most recent context for this session
    * when a terminal transition has cleared activeContextId. This is an inspection
