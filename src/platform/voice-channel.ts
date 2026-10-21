@@ -247,11 +247,18 @@ export class VoiceChannel {
   }
 
   public resolveIntent(phrase: string): IntentResolutionResult {
-    const text = phrase.trim().toLowerCase();
+    const normalizeIntentText = (value: string) =>
+      value.replace(/^voice\./i, '').replace(/[-_]/g, ' ').toLocaleLowerCase().trim()
+        .replace(/[.!?؟،,;:]+$/gu, '').replace(/\s+/g, ' ');
+    const text = normalizeIntentText(phrase);
+    const activeScenarios = this.scenarioRegistry.filter(scenario => this.activeScenarioIds.has(scenario.id));
+    // Exact matches and shorter prefixes must compete in the same candidate set.
+    // Otherwise an exact low-priority trigger ("ride") can shadow a higher-priority
+    // trigger ("ride-vip"), and equal-priority prefixes become order-dependent.
     const matchingScenarios: ScenarioDefinition[] = [];
     const fullyMatchedScenarioIds = new Set<string>();
 
-    for (const sc of this.scenarioRegistry.filter(scenario => this.activeScenarioIds.has(scenario.id))) {
+    for (const sc of activeScenarios) {
       const triggers: string[] = [];
       if (sc.activation?.value) triggers.push(sc.activation.value);
       if (sc.expectedPhrase) triggers.push(sc.expectedPhrase);
@@ -259,7 +266,7 @@ export class VoiceChannel {
       if (Array.isArray(sc.aliases)) triggers.push(...sc.aliases);
 
       const matches = triggers.some(trig => {
-        const clean = trig.replace(/^voice\./, '').replace(/[-_]/g, ' ').toLowerCase().trim();
+        const clean = normalizeIntentText(trig);
         // A user may provide only the leading part of a multi-word trigger. Keep it
         // as a candidate for ambiguity, but do not let a partially matched information
         // query steal an exact selection phrase such as "второй".

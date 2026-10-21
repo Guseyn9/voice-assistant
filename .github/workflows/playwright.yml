@@ -18,19 +18,34 @@ jobs:
         run: npm ci
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
-      - name: Run full E2E suite
+      - name: Run full platform E2E suite
+        env:
+          APP_URL: http://localhost:3000/platform
         run: npm run test:e2e
+      - name: Verify diagnostic report
+        if: always()
+        shell: bash
+        run: |
+          echo "=== Playwright diagnostic files ==="
+          find playwright-report test-results -maxdepth 3 -type f -printf '%p (%s bytes)\n' 2>/dev/null || true
+          if [ -f playwright-report/playwright-report-platform-012.json ]; then
+            node -e "const r=require('./playwright-report/playwright-report-platform-012.json'); console.log(JSON.stringify({stats:r.stats, suites:r.suites?.length}, null, 2))"
+          else
+            echo "::warning::Playwright JSON report was not generated."
+          fi
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
           path: playwright-report/
+          if-no-files-found: warn
           retention-days: 14
       - name: Upload test results (traces, screenshots, videos)
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-results
           path: test-results/
+          if-no-files-found: warn
           retention-days: 14
