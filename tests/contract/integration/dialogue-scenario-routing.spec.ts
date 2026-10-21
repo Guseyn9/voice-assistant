@@ -277,6 +277,21 @@ test.describe('CONTRACT: SC-INTEGRATION-005 Generic Dialogue Scenario Routing & 
     expect(ctxFollowUp?.contextId).toBe(ctxInitial?.contextId);
   });
 
+  test('SR-15: Another session opening a dialogue does not hide the first session context', async () => {
+    const firstUser = { ownerId: 'session-isolation-user-1', sessionId: 'session-isolation-1' };
+    const secondUser = { ownerId: 'session-isolation-user-2', sessionId: 'session-isolation-2' };
+
+    await engine.processInput({ modality: 'text', raw_input: 'нужна няня завтра' }, firstUser);
+    const firstContextId = dm.getActiveState(firstUser)?.contextId;
+    expect(firstContextId).toBeDefined();
+
+    await engine.processInput({ modality: 'text', raw_input: 'нужна няня сегодня' }, secondUser);
+
+    expect(dm.getActiveState(firstUser)?.contextId).toBe(firstContextId);
+    expect(dm.getActiveState(firstUser)?.slots.date).toBe('завтра');
+    expect(dm.getActiveState(secondUser)?.slots.date).toBe('сегодня');
+  });
+
   test('SR-14: Unknown context scenarioId does not fall back to intent', async () => {
     const invalidUser = { ownerId: 'invalid-scenario-user', sessionId: 'invalid-scenario-session' };
     dm.createContext(
