@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "id": "map-order-selection",
+  "name": "Map order selection",
+  "description": "Validation Bench scenario for the map channel action/event contract.",
+  "language": "en-US",
+  "author": "Platform Core",
+  "tags": [
+    "map",
+    "validation",
+    "contract"
+  ],
+  "scenarios": [
+    {
+      "id": "map-order-selection",
+      "name": "Map order selection emits selected event",
+      "description": "Selecting an order produces the corresponding selected event without changing the raw order ID.",
+      "category": "map",
+      "difficulty": "easy",
+      "trigger": "driver.order.select",
+      "steps": [
+        {
+          "kind": "emit",
+          "event": {
+            "type": "driver.order.selected",
+            "payload": {
+              "orderId": "00123"
+            }
+          }
+        },
+        {
+          "kind": "end"
+        }
+      ]
+    }
+  ]
+}

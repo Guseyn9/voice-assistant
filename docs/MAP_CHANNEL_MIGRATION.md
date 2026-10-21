@@ -28,3 +28,10 @@ No existing Platform Core package or Voice Channel implementation is changed.
 - Add Scenario Engine scenarios and Verification checks for select/selected and invalid selection.
 - Run CI and inspect the Validation Bench execution log before marking Phase 5 complete.
 - Integrate actual map rendering only in a separate application-level change; do not add Leaflet or Taxi backend dependencies to Platform Core.
+
+
+## Validation Bench scenario
+
+The uploadable scenario fixture is `scenarios/map-order-selection.json`. In the Voice Demo Validation Bench, choose the JSON-file scenario source and upload this file. It uses the existing ScenarioSet v1 contract and checks the `driver.order.select` → `driver.order.selected` vocabulary while preserving the string order ID `00123`. The contract test loads the fixture through `JsonScenarioProvider`, the same validator used for uploaded scenario files.
+
+This fixture validates the scenario contract; it does not replace a live Taxi UI/backend end-to-end test.
