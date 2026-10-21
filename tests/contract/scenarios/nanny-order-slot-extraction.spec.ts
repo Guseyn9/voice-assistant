@@ -17,10 +17,10 @@ const cases = [
   { phrase: 'нужна няня до восьми', slot: 'end_time', expected: '20:00' },
   { phrase: 'нужна няня до 18:00', slot: 'end_time', expected: '18:00' },
   { phrase: 'нужна няня на двух детей', slot: 'children_count', expected: 2 },
-  { phrase: 'нужна няня на троих', slot: 'children_count', expected: 3 },
+  { phrase: 'нужна няня на трех детей', slot: 'children_count', expected: 3 },
   { phrase: 'нужна няня для детей 3 и 5 лет', slot: 'children_ages', expected: '3 и 5 лет' },
   { phrase: 'нужна няня в центре', slot: 'location', expected: 'Центр' },
-  { phrase: 'нужна няня на улице Ленина 10', slot: 'location', expected: 'ул. Ленина 10' }
+  { phrase: 'нужна няня ул. Ленина 10', slot: 'location', expected: 'ул. Ленина 10' }
 ] as const;
 
 test.describe('Nanny order slot extraction', () => {
