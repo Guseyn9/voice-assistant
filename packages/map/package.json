@@ -1,0 +1,17 @@
+{
+  "name": "@platform/map",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@platform/interaction-contract": "file:../interaction-contract"
+  },
+  "devDependencies": {
+    "typescript": "^5.2.2"
+  }
+}
