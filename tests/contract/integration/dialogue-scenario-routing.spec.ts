@@ -296,6 +296,28 @@ test.describe('CONTRACT: SC-INTEGRATION-005 Generic Dialogue Scenario Routing & 
     expect(dm.getActiveState(invalidUser)?.slots.date).toBeUndefined();
   });
 
+  test('SR-15: Context without scenarioId fails closed instead of routing into an unrelated scenario', async () => {
+    const legacyUser = { ownerId: 'legacy-context-user', sessionId: 'legacy-context-session' };
+    const legacyContext = dm.createContext(
+      'LEGACY_INTENT',
+      {},
+      ['legacy_slot'],
+      'legacy.action',
+      { legacy_slot: 'Укажите старое значение' },
+      legacyUser
+    );
+
+    const res = await engine.processInput(
+      { modality: 'text', raw_input: 'нужна няня завтра' },
+      legacyUser
+    );
+
+    expect(res.status).toBe('SCENARIO_NOT_FOUND');
+    expect(dm.getActiveState(legacyUser)?.contextId).toBe(legacyContext.contextId);
+    expect(dm.getActiveState(legacyUser)?.scenarioId).toBeUndefined();
+    expect(dm.getActiveState(legacyUser)?.slots.date).toBeUndefined();
+  });
+
   // Architectural Static Checks (AT-09 .. AT-13)
   test('AT-09: telegram-bot-adapter.ts does NOT contain resolveIntent, resolveScenario, registerScenarioSet', () => {
     const filePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../src/platform/telegram-bot-adapter.ts');
