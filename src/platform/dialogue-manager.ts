@@ -155,8 +155,10 @@ export class DialogueStateManager {
   public getActiveState(identity: SessionIdentity): DialogueContext | null {
     this.validateIdentity(identity);
 
-    // The pointer is global for compatibility, so it may be empty or refer
-    // to a terminal/foreign context while this session still has an active one.
+    // The pointer is global for compatibility and can be empty or foreign.
+    // Prefer this session's latest waiting context only when it is newer than
+    // its latest terminal context; otherwise inspection must expose the terminal
+    // result rather than an older, unrelated waiting dialogue.
     const pointed = this.activeContextId ? this.contexts.get(this.activeContextId) : undefined;
     let ctx: DialogueContext | undefined;
 
@@ -166,13 +168,19 @@ export class DialogueStateManager {
         !['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(pointed.status)) {
       ctx = pointed;
     } else {
-      ctx = Array.from(this.contexts.values())
-        .filter(candidate =>
-          candidate.ownerId === identity.ownerId &&
-          candidate.sessionId === identity.sessionId &&
-          candidate.status === 'WAITING_FOR_SLOT'
-        )
+      const ownContexts = Array.from(this.contexts.values()).filter(candidate =>
+        candidate.ownerId === identity.ownerId && candidate.sessionId === identity.sessionId
+      );
+      const waiting = ownContexts
+        .filter(candidate => candidate.status === 'WAITING_FOR_SLOT')
         .sort((a, b) => b.updatedAt - a.updatedAt)[0];
+      const terminal = ownContexts
+        .filter(candidate => ['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(candidate.status))
+        .sort((a, b) => b.updatedAt - a.updatedAt)[0];
+
+      if (waiting && (!terminal || waiting.updatedAt >= terminal.updatedAt)) {
+        ctx = waiting;
+      }
     }
 
     if (!ctx) return null;
