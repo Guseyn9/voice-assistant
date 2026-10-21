@@ -9,7 +9,7 @@
 import type { ScenarioProvider } from "./ScenarioProvider"
 import type { ScenarioSet } from "./ScenarioSet"
 import { validateScenarioSet } from "./ScenarioSetValidator"
-import builtinScenarioSetJson from "./scenarios/builtin.json"
+import builtinScenarioSetJson from "./scenarios/builtin.json" with { type: "json" }
 
 /**
  * Synchronous helper used where an async load() is inconvenient
