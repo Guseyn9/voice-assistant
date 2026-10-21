@@ -277,7 +277,7 @@ test.describe('CONTRACT: SC-INTEGRATION-005 Generic Dialogue Scenario Routing & 
     expect(ctxFollowUp?.contextId).toBe(ctxInitial?.contextId);
   });
 
-  test('SR-15: Another session opening a dialogue does not hide the first session context', async () => {
+  test('SR-16: Another session opening a dialogue does not hide the first session context', async () => {
     const firstUser = { ownerId: 'session-isolation-user-1', sessionId: 'session-isolation-1' };
     const secondUser = { ownerId: 'session-isolation-user-2', sessionId: 'session-isolation-2' };
 
