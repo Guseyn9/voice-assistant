@@ -155,20 +155,17 @@ export class DialogueStateManager {
   public getActiveState(identity: SessionIdentity): DialogueContext | null {
     this.validateIdentity(identity);
 
-    // The pointer is global for compatibility. If it points at another session,
-    // look up this session's own waiting context instead of hiding it. If it is
-    // empty or terminal for this session, preserve the original null semantics so
-    // inspection helpers can return the most recently updated terminal context.
+    // The pointer is global for compatibility, so it may be empty or refer
+    // to a terminal/foreign context while this session still has an active one.
     const pointed = this.activeContextId ? this.contexts.get(this.activeContextId) : undefined;
     let ctx: DialogueContext | undefined;
 
     if (pointed &&
         pointed.ownerId === identity.ownerId &&
-        pointed.sessionId === identity.sessionId) {
-      if (!['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(pointed.status)) {
-        ctx = pointed;
-      }
-    } else if (pointed) {
+        pointed.sessionId === identity.sessionId &&
+        !['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(pointed.status)) {
+      ctx = pointed;
+    } else {
       ctx = Array.from(this.contexts.values())
         .filter(candidate =>
           candidate.ownerId === identity.ownerId &&
