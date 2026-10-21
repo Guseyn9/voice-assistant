@@ -292,6 +292,41 @@ test.describe('CONTRACT: SC-INTEGRATION-005 Generic Dialogue Scenario Routing & 
     expect(dm.getActiveState(secondUser)?.slots.date).toBe('сегодня');
   });
 
+  test('SR-17: Completing another session does not hide a still-waiting context', async () => {
+    const firstUser = { ownerId: 'terminal-isolation-user-1', sessionId: 'terminal-isolation-1' };
+    const secondUser = { ownerId: 'terminal-isolation-user-2', sessionId: 'terminal-isolation-2' };
+
+    const firstContext = dm.createContext(
+      'ORDER_NANNY',
+      { date: 'завтра' },
+      ['start_time'],
+      'nanny.order.created',
+      { start_time: 'Во сколько?' },
+      firstUser,
+      'order-nanny'
+    );
+    const secondContext = dm.createContext(
+      'ORDER_NANNY',
+      { date: 'сегодня' },
+      ['start_time'],
+      'nanny.order.created',
+      { start_time: 'Во сколько?' },
+      secondUser,
+      'order-nanny'
+    );
+
+    const completed = await dm.handleSystemEvent(
+      secondContext.contextId,
+      { type: 'order.completed', targetTransition: 'COMPLETE' },
+      secondUser
+    );
+    expect(completed.success).toBe(true);
+    expect(dm.getActiveContextId()).toBeNull();
+
+    expect(dm.getActiveState(firstUser)?.contextId).toBe(firstContext.contextId);
+    expect(dm.getActiveState(firstUser)?.slots.date).toBe('завтра');
+  });
+
   test('SR-14: Unknown context scenarioId does not fall back to intent', async () => {
     const invalidUser = { ownerId: 'invalid-scenario-user', sessionId: 'invalid-scenario-session' };
     dm.createContext(
