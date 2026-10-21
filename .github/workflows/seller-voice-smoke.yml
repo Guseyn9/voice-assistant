@@ -5,6 +5,7 @@ on:
     paths:
       - 'src/App.tsx'
       - 'src/seller-voice.css'
+      - 'src/platform/**'
       - 'tests/e2e/seller-web-voice.spec.ts'
       - 'scenario-sc-001-vegetable-stall.json'
       - 'index.html'
