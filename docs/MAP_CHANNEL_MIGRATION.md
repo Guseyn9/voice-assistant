@@ -1,4 +1,4 @@
-# Map Channel Migration — Phase 5, slice 1
+# Map Channel Migration — Phase 5, slice 3
 
 ## Source inspection
 
@@ -22,11 +22,12 @@ This change ports only the replaceable map-channel boundary into `packages/map`:
 
 No existing Platform Core package or Voice Channel implementation is changed.
 
-## Remaining migration work
+## Current status and remaining migration work
 
-- Connect the map channel to the existing Validation Bench without making the channel own UI state.
-- Add Scenario Engine scenarios and Verification checks for select/selected and invalid selection.
-- Run CI and inspect the Validation Bench execution log before marking Phase 5 complete.
+- The Validation Bench scenario runner now routes the map-selection fixture through the real `MapChannel`, rather than treating `driver.order.select` as if it were already a domain event.
+- A browser E2E test uploads the fixture, starts it through the UI, and verifies both the dispatched Action and the matching selected Event in the execution trace.
+- The Validation Bench adapter simulates the application's response using the selected event declared in the fixture. This proves channel-to-contract wiring in the browser, but is not a live Taxi backend or production UI integration.
+- Continue with negative browser coverage for invalid order IDs and inspect the CI artifacts before marking Phase 5 complete.
 - Integrate actual map rendering only in a separate application-level change; do not add Leaflet or Taxi backend dependencies to Platform Core.
 
 
@@ -34,7 +35,7 @@ No existing Platform Core package or Voice Channel implementation is changed.
 
 The uploadable scenario fixture is `scenarios/map-order-selection.json`. In the Voice Demo Validation Bench, choose the JSON-file scenario source and upload this file. It uses the existing ScenarioSet v1 contract and checks the `driver.order.select` → `driver.order.selected` vocabulary while preserving the string order ID `00123`. The contract test loads the fixture through `JsonScenarioProvider`, the same validator used for uploaded scenario files.
 
-This fixture validates the scenario contract; it does not replace a live Taxi UI/backend end-to-end test.
+The browser E2E test additionally exercises the real `MapChannel` through the Validation Bench. The selected event is simulated by the Bench adapter from the fixture; this does not replace a live Taxi UI/backend end-to-end test.
 
 
 ## Raw order ID compatibility

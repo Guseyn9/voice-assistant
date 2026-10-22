@@ -1,8 +1,10 @@
 import type { SessionIdentity } from '../../../src/platform/dialogue-manager';
+import { MapChannel, MAP_ORDER_SELECT_ACTION } from '../../../packages/map/src/index';
+import type { InteractionAction, InteractionContract, InteractionEvent, InteractionSnapshot } from '../../../packages/interaction-contract/dist/index';
 
 type ScenarioEvent = { type: string; payload: Record<string, any> };
 type ScenarioStep = { kind: string; event?: ScenarioEvent; ms?: number };
-type ScenarioDefinition = { id: string; intent?: string; name?: string; steps?: ScenarioStep[] };
+type ScenarioDefinition = { id: string; intent?: string; name?: string; trigger?: string; steps?: ScenarioStep[] };
 type ScenarioSet = { id: string; name?: string; version?: number; scenarios: ScenarioDefinition[] };
 
 export class VoiceDemoApp {
@@ -98,6 +100,58 @@ export function mountApp(root: HTMLElement, runtime: any, authenticatedIdentity:
       terminal.textContent = '';
       const declaredSteps = scenario.steps || [];
       const outputEvents = declaredSteps.filter(step => step.kind === 'emit' && step.event?.type !== 'VOICE_INPUT_RECEIVED');
+
+      // The map scenario's trigger is an Interaction Action, not a domain event.
+      // Run it through the real MapChannel, then let this Validation Bench adapter
+      // replay the fixture's expected selected event as the application response.
+      if (scenario.trigger === MAP_ORDER_SELECT_ACTION) {
+        const expectedSelection = declaredSteps.find(
+          step => step.kind === 'emit' && step.event?.type === 'driver.order.selected'
+        )?.event;
+        if (!expectedSelection || !Object.prototype.hasOwnProperty.call(expectedSelection.payload, 'orderId')) {
+          throw new Error('Map selection scenario must declare driver.order.selected with an orderId');
+        }
+
+        const listeners = new Set<(event: InteractionEvent) => void>();
+        const interaction: InteractionContract = {
+          async dispatch<TPayload>(action: InteractionAction<TPayload>): Promise<void> {
+            if (action.type !== MAP_ORDER_SELECT_ACTION) return;
+            const selectedOrderId = (action.payload as { orderId?: unknown } | null)?.orderId;
+            if (selectedOrderId !== expectedSelection.payload.orderId) return;
+
+            const event: InteractionEvent = {
+              type: expectedSelection.type,
+              payload: expectedSelection.payload,
+              metadata: {
+                source: 'validation-bench-scenario',
+                timestamp: new Date().toISOString(),
+                correlationId: action.metadata?.correlationId
+              }
+            };
+            for (const listener of listeners) listener(event);
+          },
+          subscribe(listener: (event: InteractionEvent) => void): () => void {
+            listeners.add(listener);
+            return () => listeners.delete(listener);
+          },
+          async snapshot(): Promise<InteractionSnapshot> {
+            return { revision: 0, state: {} };
+          }
+        };
+
+        const mapChannel = new MapChannel({
+          interaction,
+          onAction: action => appendTrace({ type: action.type, payload: action.payload as Record<string, any> }, { status: 'DISPATCHED' }),
+          onEvent: event => appendTrace({ type: event.type, payload: event.payload as Record<string, any> }, { status: 'RECEIVED' })
+        });
+        mapChannel.startObserving();
+        await mapChannel.selectOrder(expectedSelection.payload.orderId);
+        mapChannel.stopObserving();
+
+        terminal.textContent = 'kind: "end" — SCENARIO_STATE_COMPLETED';
+        progress.textContent = '1/1 · 100%';
+        return { status: 'COMPLETED', scenarioId: scenario.id, emittedEvents: 1 };
+      }
       const outputOffset = activeSet.scenarios.length > 1 ? index : 0;
       let outputIndex = 0;
 
