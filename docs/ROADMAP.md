@@ -14,6 +14,8 @@ Emulator, Scenario Engine, Execution Log, Verification, Validation Bench.
 
 ## Phase 4 - Validation Deployment
 Validation Bench на сервере. Отчеты через Backend API.
+- Подключены Session Panel, предпросмотр и скачивание JSON-отчета, отправка отчета через существующий Backend API.
+- Проверка отправки покрыта браузерным E2E-тестом с изолированным mock Backend API.
 Статус: в процессе
 
 ## Phase 5 - Map Migration
