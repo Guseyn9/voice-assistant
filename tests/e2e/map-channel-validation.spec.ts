@@ -34,7 +34,11 @@ test.describe('Map Channel Validation Bench integration', () => {
 
   for (const invalidOrderId of [
     { label: 'blank string', value: '   ' },
-    { label: 'null', value: null }
+    { label: 'empty string', value: '' },
+    { label: 'null', value: null },
+    { label: 'missing orderId', value: undefined },
+    { label: 'boolean orderId', value: true },
+    { label: 'object orderId', value: {} }
   ]) {
     test(`rejects ${invalidOrderId.label} order IDs without logging an Action or Event`, async ({ page }) => {
       await page.goto(process.env.APP_URL || 'http://localhost:3000');
