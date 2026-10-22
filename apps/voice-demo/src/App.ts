@@ -89,6 +89,8 @@ export function mountApp(root: HTMLElement, runtime: any, authenticatedIdentity:
   const progress = host.querySelector<HTMLElement>('#scenario-progress')!;
   const voiceInput = host.querySelector<HTMLInputElement>('#voice-command-input')!;
 
+  let activeSet: ScenarioSet | null = null;
+
   mountReportPanel(host, tester => ({
     generatedAt: new Date().toISOString(),
     tester,
@@ -115,7 +117,6 @@ export function mountApp(root: HTMLElement, runtime: any, authenticatedIdentity:
     }
   }));
 
-  let activeSet: ScenarioSet | null = null;
   const scenarioEngine = {
     getActiveScenarioSetId: () => activeSet?.id || '',
     getActiveScenarioSet: () => activeSet,
