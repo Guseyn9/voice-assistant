@@ -139,14 +139,26 @@ export function mountApp(root: HTMLElement, runtime: any, authenticatedIdentity:
           }
         };
 
+        let actionDispatched = false;
         const mapChannel = new MapChannel({
           interaction,
-          onAction: action => appendTrace({ type: action.type, payload: action.payload as Record<string, any> }, { status: 'DISPATCHED' }),
+          onAction: action => {
+            actionDispatched = true;
+            appendTrace({ type: action.type, payload: action.payload as Record<string, any> }, { status: 'DISPATCHED' });
+          },
           onEvent: event => appendTrace({ type: event.type, payload: event.payload as Record<string, any> }, { status: 'RECEIVED' })
         });
         mapChannel.startObserving();
         await mapChannel.selectOrder(expectedSelection.payload.orderId);
         mapChannel.stopObserving();
+
+        // Invalid map IDs are intentionally ignored by MapChannel. Do not report
+        // a successful scenario when the channel rejected the input and dispatched nothing.
+        if (!actionDispatched) {
+          terminal.textContent = 'kind: "end" — SCENARIO_STATE_FAILED: invalid orderId';
+          progress.textContent = '0/1 · 0%';
+          return { status: 'FAILED', scenarioId: scenario.id, emittedEvents: 0 };
+        }
 
         terminal.textContent = 'kind: "end" — SCENARIO_STATE_COMPLETED';
         progress.textContent = '1/1 · 100%';
