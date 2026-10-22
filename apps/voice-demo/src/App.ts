@@ -1,5 +1,6 @@
 import type { SessionIdentity } from '../../../src/platform/dialogue-manager';
 import { MapChannel, MAP_ORDER_SELECT_ACTION } from '../../../packages/map/src/index';
+import { mountReportPanel } from './ReportPanel';
 import type { InteractionAction, InteractionContract, InteractionEvent, InteractionSnapshot } from '../../../packages/interaction-contract/dist/index';
 
 type ScenarioEvent = { type: string; payload: Record<string, any> };
@@ -87,6 +88,32 @@ export function mountApp(root: HTMLElement, runtime: any, authenticatedIdentity:
   const terminal = host.querySelector<HTMLElement>('#execution-terminal')!;
   const progress = host.querySelector<HTMLElement>('#scenario-progress')!;
   const voiceInput = host.querySelector<HTMLInputElement>('#voice-command-input')!;
+
+  mountReportPanel(host, tester => ({
+    generatedAt: new Date().toISOString(),
+    tester,
+    build: (document.documentElement as HTMLElement).dataset.buildVersion || 'unknown',
+    scenarioSet: activeSet ? {
+      id: activeSet.id,
+      name: activeSet.name || activeSet.id,
+      scenarios: activeSet.scenarios.map(scenario => ({
+        id: scenario.id,
+        name: scenario.name || scenario.id,
+        trigger: scenario.trigger
+      }))
+    } : null,
+    executionLog: trace.textContent || '',
+    verification: {
+      terminal: terminal.textContent || 'NOT_RUN',
+      progress: progress.textContent || '0/0'
+    },
+    environment: {
+      userAgent: navigator.userAgent,
+      language: navigator.language,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      url: window.location.origin
+    }
+  }));
 
   let activeSet: ScenarioSet | null = null;
   const scenarioEngine = {
