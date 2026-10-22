@@ -51,7 +51,7 @@ export function mountReportPanel(
   const connectButton = query<HTMLButtonElement>('[data-testid="report-connect"]');
   const previewButton = query<HTMLButtonElement>('[data-testid="report-preview"]');
   const downloadButton = query<HTMLButtonElement>('[data-testid="report-download"]');
-  const sendButton = query<HTMLButtonElement>('[data-testid="report-send']');
+  const sendButton = query<HTMLButtonElement>('[data-testid="report-send"]');
   const client = new BackendClient();
   let emailId: string | null = null;
   let connectedBaseUrl = '';
