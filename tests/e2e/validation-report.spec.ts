@@ -62,7 +62,7 @@ test.describe('Validation report panel', () => {
     const attachment = JSON.parse(form.get('file') || '[]')[0];
     expect(attachment.name).toBe('validation-report.json');
     const attachedReport = Buffer.from(String(attachment.base64).split(',')[1] || '', 'base64').toString('utf8');
-    expect(attachedReport).toContain('"tester": "qa@example.test"');
+    expect(attachedReport).toContain('"tester":"qa@example.test"');
     expect(form.get('subject')).toBe('Validation Report');
   });
 });
