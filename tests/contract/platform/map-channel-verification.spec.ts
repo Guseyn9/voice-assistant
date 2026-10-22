@@ -171,4 +171,38 @@ test.describe("Map Channel → Scenario Engine → Verification Harness", () => 
         expect(typeof (entries[1].payload as { payload: { orderId: unknown } }).payload.orderId).toBe("number")
     })
 
+    test("invalid map selection produces no Action or Event in the execution log", async () => {
+        const interaction = new RecordingInteraction()
+        const channel = new MapChannel({
+            interaction,
+            now: () => "2026-10-21T12:00:00.000Z",
+            createCorrelationId: () => "map-verification-invalid-1"
+        })
+        const log = new ExecutionLog()
+        const registry = new ScenarioRegistry()
+        const engine = new ScenarioEngine(registry, { wait: async () => undefined })
+
+        await channel.selectOrder("   ")
+        await channel.selectOrder(null)
+        await channel.selectOrder(undefined)
+        await channel.selectOrder(Number.NaN)
+        await channel.selectOrder(Number.POSITIVE_INFINITY)
+
+        for (const action of interaction.actions) {
+            log.append("Action", { type: action.type, payload: action.payload })
+            for await (const event of engine.run(action)) {
+                log.append("Event", { type: event.type, payload: event.payload })
+            }
+        }
+
+        expect(interaction.actions).toHaveLength(0)
+        expect(log.getEntries()).toHaveLength(0)
+
+        const result = new VerificationRunner(log).runOne({
+            id: "map-order-selection-invalid",
+            name: "Invalid map selection emits no interaction",
+            expectations: []
+        })
+        expect(result.passed, result.errors.map(error => error.message).join("; ")).toBe(true)
+    })
 })
