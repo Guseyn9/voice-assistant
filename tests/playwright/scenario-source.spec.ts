@@ -107,4 +107,24 @@ test.describe("PR-11: External JSON Scenarios", () => {
         expect(options).toEqual(["voice.accept-order", "voice.finish-trip"])
     })
 
+
+    test("map channel fixture loads in the browser and exposes its trigger to Interactive Inject Action", async ({ page }) => {
+        await page.goto("/")
+
+        await page.getByTestId("scenario-source-file").check()
+        await page.setInputFiles(
+            '[data-testid="scenario-file-input"]',
+            path.resolve(process.cwd(), "scenarios/map-order-selection.json")
+        )
+
+        await expect(page.getByTestId("scenario-file-name")).toHaveText("map-order-selection.json")
+        await expect(page.getByTestId("scenario-error")).toBeHidden()
+
+        await page.getByTestId("validation-mode").selectOption("interactive")
+        await page.getByTestId("input-source").selectOption("inject")
+
+        const options = await page.getByTestId("inject-action").locator("option").allTextContents()
+        expect(options).toEqual(["driver.order.select"])
+    })
+
 })
