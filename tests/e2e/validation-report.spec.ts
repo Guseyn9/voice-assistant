@@ -58,7 +58,11 @@ test.describe('Validation report panel', () => {
     await panel.getByTestId('report-send').click();
     await expect(panel.getByTestId('report-status')).toContainText('Report sent successfully.');
     expect(sentRequests).toHaveLength(1);
-    expect(sentRequests[0].body).toContain('validation-report.json');
-    expect(sentRequests[0].body).toContain('qa%40example.test');
+    const form = new URLSearchParams(sentRequests[0].body);
+    const attachment = JSON.parse(form.get('file') || '[]')[0];
+    expect(attachment.name).toBe('validation-report.json');
+    const attachedReport = Buffer.from(String(attachment.base64).split(',')[1] || '', 'base64').toString('utf8');
+    expect(attachedReport).toContain('"tester": "qa@example.test"');
+    expect(form.get('subject')).toBe('Validation Report');
   });
 });
