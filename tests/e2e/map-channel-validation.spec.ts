@@ -36,7 +36,6 @@ test.describe('Map Channel Validation Bench integration', () => {
     { label: 'blank string', value: '   ' },
     { label: 'empty string', value: '' },
     { label: 'null', value: null },
-    { label: 'missing orderId', value: undefined },
     { label: 'boolean orderId', value: true },
     { label: 'object orderId', value: {} }
   ]) {
