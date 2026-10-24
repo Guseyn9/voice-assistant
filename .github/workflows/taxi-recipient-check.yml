@@ -1,0 +1,118 @@
+name: Taxi Recipient Check
+
+# Manual, read-only look at `site_emails` (GET /api/v1/data/?json_like=...).
+# One /data/ request per run. No /mail/, no recipient selection, no e-mail is
+# sent, no Playwright, no artifacts. Recipient values are never printed.
+#
+# Modes (choose when dispatching)
+#  * public       — GET without any credentials. Runs in a job that has NO
+#                   Environment, hence cannot read any secret.
+#  * query_token  — one /auth + one /token, then GET with token and u_hash as
+#                   query parameters. Runs in the `taxi-test` Environment: only
+#                   after the required reviewer approves, only on the branches in
+#                   that Environment's deployment-branch policy.
+#
+# Triggers: `workflow_dispatch` only (no push, pull_request, pull_request_target,
+# workflow_run or schedule), so a PR or a fork cannot start it.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "public = no credentials; query_token = authorised GET (needs approval)"
+        type: choice
+        required: true
+        default: public
+        options:
+          - public
+          - query_token
+
+permissions: {}
+
+concurrency:
+  group: taxi-recipient-check
+  cancel-in-progress: false
+
+jobs:
+  offline-tests:
+    name: Offline tests (no secrets)
+    if: github.repository == 'Guseyn9/voice-assistant' && contains(fromJSON('["refs/heads/master","refs/heads/feature/taxi-auth-check"]'), github.ref)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Show what is being tested
+        run: |
+          echo "ref=${GITHUB_REF} sha=${GITHUB_SHA}"
+          echo "node=$(node --version)"
+          sha256sum scripts/taxi-auth-check.mjs scripts/taxi-recipient-check.mjs \
+            tests/node/taxi-auth-check.test.mjs tests/node/taxi-recipient-check.test.mjs
+
+      - name: Offline tests (mock servers on 127.0.0.1, fictitious values)
+        run: node --test tests/node/taxi-auth-check.test.mjs tests/node/taxi-recipient-check.test.mjs
+
+  recipient-public:
+    name: Recipient lookup without credentials
+    needs: offline-tests
+    if: inputs.mode == 'public'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    # No `environment:` — this job has no access to any Environment secret.
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Show what is being run
+        run: |
+          echo "ref=${GITHUB_REF} sha=${GITHUB_SHA}"
+          echo "node=$(node --version)"
+          sha256sum scripts/taxi-auth-check.mjs scripts/taxi-recipient-check.mjs
+
+      - name: Taxi recipient check (public)
+        env:
+          RECIPIENT_CHECK_MODE: public
+          # Public configuration (the same value is baked into every Vite bundle).
+          VITE_BACKEND_URL: https://ibronevik.ru/taxi/c/gruzvill
+        run: node scripts/taxi-recipient-check.mjs
+
+  recipient-authorised:
+    name: Recipient lookup with token (approval required)
+    needs: offline-tests
+    if: inputs.mode == 'query_token'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    # Secrets and variables below come from this Environment only.
+    environment: taxi-test
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Show what is being run
+        run: |
+          echo "ref=${GITHUB_REF} sha=${GITHUB_SHA}"
+          echo "node=$(node --version)"
+          sha256sum scripts/taxi-auth-check.mjs scripts/taxi-recipient-check.mjs
+
+      - name: Taxi recipient check (query_token)
+        env:
+          RECIPIENT_CHECK_MODE: query_token
+          VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL }}
+          E2E_DRIVER_TYPE: ${{ vars.E2E_DRIVER_TYPE }}
+          # Secrets: visible to this step only.
+          E2E_DRIVER_LOGIN: ${{ secrets.E2E_DRIVER_LOGIN }}
+          E2E_DRIVER_PASSWORD: ${{ secrets.E2E_DRIVER_PASSWORD }}
+        run: node scripts/taxi-recipient-check.mjs

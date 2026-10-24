@@ -173,10 +173,11 @@ export function classifyFetchError(error) {
 // ---------------------------------------------------------------------------
 
 /**
- * Sends ONE form POST. Never throws; never retries; never returns the body text
- * except as the parsed JSON object on success.
+ * Sends ONE request (form POST by default, plain GET on request). Never throws;
+ * never retries; never returns the body text except as the parsed JSON object
+ * on success.
  */
-async function postForm(url, fields, { fetchImpl, timeoutMs }) {
+export async function sendRequest(url, { method = 'POST', fields, fetchImpl, timeoutMs }) {
   const started = performance.now()
   const elapsed = () => Math.round(performance.now() - started)
   const signal = AbortSignal.timeout(timeoutMs)
@@ -184,8 +185,8 @@ async function postForm(url, fields, { fetchImpl, timeoutMs }) {
   let response
   try {
     response = await fetchImpl(url, {
-      method: 'POST',
-      body: new URLSearchParams(fields),
+      method,
+      ...(method === 'POST' ? { body: new URLSearchParams(fields) } : {}),
       redirect: 'manual',
       cache: 'no-store',
       signal,
@@ -226,7 +227,9 @@ async function postForm(url, fields, { fetchImpl, timeoutMs }) {
 // Response interpretation
 // ---------------------------------------------------------------------------
 
-const nonEmptyString = value => typeof value === 'string' && value !== ''
+const postForm = (url, fields, options) => sendRequest(url, { ...options, method: 'POST', fields })
+
+export const nonEmptyString = value => typeof value === 'string' && value !== ''
 
 /** HTTP 200 carrying an application-level error. Returns a label or null. */
 function applicationError(json) {
@@ -239,7 +242,7 @@ function applicationError(json) {
   return typeof json.message === 'string' ? 'unlisted_message' : 'no_message'
 }
 
-function toStage(name, round, interpret) {
+export function toStage(name, round, interpret) {
   const base = { name, httpStatus: round.status, ms: round.ms }
   switch (round.kind) {
     case 'network':
@@ -253,7 +256,7 @@ function toStage(name, round, interpret) {
   }
 }
 
-function interpretAuth(base, json) {
+export function interpretAuth(base, json) {
   const appError = applicationError(json)
   if (appError) return { ...base, ok: false, exit: EXIT.APP, cls: 'APP_ERROR', detail: appError }
   if (!nonEmptyString(json.auth_hash))
@@ -261,7 +264,7 @@ function interpretAuth(base, json) {
   return { ...base, ok: true, authHash: json.auth_hash }
 }
 
-function interpretToken(base, json) {
+export function interpretToken(base, json) {
   const appError = applicationError(json)
   if (appError) return { ...base, ok: false, exit: EXIT.APP, cls: 'APP_ERROR', detail: appError }
   const data = json.data
@@ -273,11 +276,14 @@ function interpretToken(base, json) {
   return { ...base, ok: true }
 }
 
+/** Session values from a /token answer that interpretToken has accepted. */
+export const extractSession = json => ({ token: json.data.token, uHash: json.data.u_hash })
+
 // ---------------------------------------------------------------------------
 // Orchestration
 // ---------------------------------------------------------------------------
 
-const describe = stage => {
+export const describe = stage => {
   const parts = [`class=${stage.cls}`]
   if (stage.detail) parts.push(`detail=${stage.detail}`)
   if (stage.code) parts.push(`code=${stage.code}`)
