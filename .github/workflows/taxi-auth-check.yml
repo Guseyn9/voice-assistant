@@ -1,0 +1,83 @@
+name: Taxi Auth Check
+
+# Manual, single-shot authentication check against the Taxi test API:
+# exactly one POST /auth and, only if that answer is well-formed, one POST /token.
+# No /data/, no /mail/, no Playwright, no artifacts.
+#
+# Security model
+#  * Only `workflow_dispatch`. No push, pull_request, pull_request_target,
+#    workflow_run or schedule trigger, so neither a PR nor a fork can start it.
+#  * Credentials exist only as secrets of the `taxi-test` Environment. That
+#    Environment lives in this repository only, is limited to the branches
+#    listed in its deployment-branch policy and requires a manual approval
+#    before the `auth-check` job may read any secret.
+#  * The `offline-tests` job has no Environment and therefore no secrets.
+#  * Secrets are passed to a single step, never at job or workflow level.
+#  * The script prints stage names, error classes, HTTP statuses and timings
+#    only, and never retries (see scripts/taxi-auth-check.mjs).
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: taxi-auth-check
+  cancel-in-progress: false
+
+jobs:
+  offline-tests:
+    name: Offline tests (no secrets)
+    # Belt and braces next to the Environment policy: only this repository and
+    # only the two reviewed branches.
+    if: github.repository == 'Guseyn9/voice-assistant' && contains(fromJSON('["refs/heads/master","refs/heads/feature/taxi-auth-check"]'), github.ref)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Show what is being tested
+        run: |
+          echo "ref=${GITHUB_REF} sha=${GITHUB_SHA}"
+          echo "node=$(node --version)"
+          sha256sum scripts/taxi-auth-check.mjs tests/node/taxi-auth-check.test.mjs
+
+      - name: Offline tests (mock servers on 127.0.0.1, fictitious credentials)
+        run: node --test tests/node/taxi-auth-check.test.mjs
+
+  auth-check:
+    name: Real check (one /auth, one /token)
+    needs: offline-tests
+    if: github.repository == 'Guseyn9/voice-assistant' && contains(fromJSON('["refs/heads/master","refs/heads/feature/taxi-auth-check"]'), github.ref)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    # Secrets and variables below come from this Environment only.
+    environment: taxi-test
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Show what is being run
+        run: |
+          echo "ref=${GITHUB_REF} sha=${GITHUB_SHA}"
+          echo "node=$(node --version)"
+          sha256sum scripts/taxi-auth-check.mjs
+
+      - name: Taxi auth check
+        env:
+          # Configuration, not a secret (public in every Vite bundle anyway).
+          VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL }}
+          E2E_DRIVER_TYPE: ${{ vars.E2E_DRIVER_TYPE }}
+          # Secrets: visible to this step only.
+          E2E_DRIVER_LOGIN: ${{ secrets.E2E_DRIVER_LOGIN }}
+          E2E_DRIVER_PASSWORD: ${{ secrets.E2E_DRIVER_PASSWORD }}
+        run: node scripts/taxi-auth-check.mjs
