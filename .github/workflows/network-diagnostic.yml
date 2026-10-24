@@ -1,0 +1,151 @@
+name: Network Diagnostic
+
+# Manual, secret-free reachability check of the Taxi test API from a GitHub
+# runner. Only DNS, TLS and plain GET requests; no POST, no authentication, no
+# /auth, /token or /mail/{id}/send/. Prints only an error class, HTTP status
+# and timings.
+
+on:
+  workflow_dispatch:
+
+# No checkout, no API token use: the job needs no repository permissions.
+permissions: {}
+
+concurrency:
+  group: network-diagnostic
+  cancel-in-progress: false
+
+env:
+  HOST: ibronevik.ru
+  CONNECT_TIMEOUT: "10"   # seconds for DNS + TCP connect
+  MAX_TIME: "20"          # seconds for the whole request
+  ATTEMPTS: "5"           # per URL, sequential
+  PAUSE: "8"              # seconds between requests
+
+jobs:
+  network:
+    name: DNS / TLS / HTTP reachability
+    runs-on: ubuntu-latest
+    # 3 URLs x 5 attempts x (20 s max + 8 s pause) = 7 min worst case.
+    timeout-minutes: 12
+    steps:
+      - name: Runner info
+        shell: bash
+        run: |
+          echo "time_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "image=${ImageOS:-unknown} ${ImageVersion:-unknown}"
+          curl --version | head -n 1
+          openssl version
+
+      - name: DNS
+        shell: bash
+        run: |
+          set +e   # GitHub's bash runs with -e; failures are handled explicitly below
+          start=$(date +%s%N)
+          if addrs=$(getent ahostsv4 "$HOST" | awk '{print $1}' | sort -u) && [ -n "$addrs" ]; then
+            ms=$(( ($(date +%s%N) - start) / 1000000 ))
+            echo "DNS result=OK type=A time_ms=$ms"
+            echo "$addrs" | sed 's/^/DNS A /'
+          else
+            echo "::error::DNS_ERROR: $HOST did not resolve to an IPv4 address"
+            exit 1
+          fi
+          if getent ahostsv6 "$HOST" >/dev/null 2>&1; then
+            echo "DNS AAAA present"
+          else
+            echo "DNS AAAA absent"
+          fi
+
+      - name: TLS certificate
+        if: always()
+        shell: bash
+        run: |
+          set +e   # GitHub's bash runs with -e; failures are handled explicitly below
+          # Verification stays on: -verify_return_error makes a bad chain fail.
+          out=$(echo | timeout 20 openssl s_client -connect "$HOST:443" -servername "$HOST" \
+                  -verify_return_error 2>/dev/null) || rc=$?
+          rc=${rc:-0}
+          proto=$(printf '%s\n' "$out" | awk -F': *' '/^ *Protocol *:/ {print $2; exit}')
+          verify=$(printf '%s\n' "$out" | awk -F': *' '/Verify return code/ {print $2; exit}')
+          echo "TLS protocol=${proto:-unknown} verify=\"${verify:-unknown}\" openssl_exit=$rc"
+          printf '%s\n' "$out" | openssl x509 -noout -issuer -enddate 2>/dev/null \
+            | sed -E 's/^issuer=.*O *= *([^,]+).*/TLS issuer_org=\1/; s/^notAfter=/TLS not_after=/'
+          case "$verify" in
+            "0 (ok)"*) exit 0 ;;
+            *) echo "::error::TLS_ERROR: certificate verification did not succeed"; exit 1 ;;
+          esac
+
+      - name: HTTP reachability
+        if: always()
+        shell: bash
+        run: |
+          set +e   # GitHub's bash runs with -e; curl failures are classified, not fatal
+          set -u
+
+          # Maps curl's exit code and timings to a network-level class.
+          # A received HTTP response (any status) is always a network success.
+          # A timing of 0 means that phase never completed.
+          classify() { # $1=curl exit code, $2=time_namelookup, $3=time_connect, $4=time_appconnect
+            case "$1" in
+              0)  echo "OK" ;;
+              6)  echo "DNS_ERROR" ;;
+              7)  echo "TCP_CONNECT_FAILED" ;;
+              28) if awk -v t="$2" 'BEGIN{exit !(t+0==0)}'; then echo "DNS_TIMEOUT"
+                  elif awk -v t="$3" 'BEGIN{exit !(t+0==0)}'; then echo "TCP_CONNECT_TIMEOUT"
+                  elif awk -v t="$4" 'BEGIN{exit !(t+0==0)}'; then echo "TLS_HANDSHAKE_TIMEOUT"
+                  else echo "HTTP_RESPONSE_TIMEOUT"; fi ;;
+              35|51|58|59|60|64|66|77|80|82|83|90|91) echo "TLS_ERROR" ;;
+              52|55|56) echo "TRANSPORT_ERROR_AFTER_CONNECT" ;;
+              *)  echo "OTHER_CURL_ERROR_$1" ;;
+            esac
+          }
+
+          targets=(
+            "base|https://$HOST/taxi/c/gruzvill"
+            "base-slash|https://$HOST/taxi/c/gruzvill/"
+            "api|https://$HOST/taxi/c/gruzvill/api/v1"
+          )
+
+          failed_targets=0
+          {
+            echo "### Network diagnostic: $HOST"
+            echo
+            echo "| target | network OK | HTTP statuses | network errors |"
+            echo "|---|---|---|---|"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          for t in "${targets[@]}"; do
+            label=${t%%|*}; url=${t#*|}
+            echo "== $label $url"
+            ok=0; statuses=""; errors=""
+            for i in $(seq 1 "$ATTEMPTS"); do
+              # No -L (redirects are reported, not followed), no retries, no
+              # -k, https only. stderr is dropped: only the class is printed.
+              out=$(curl -sS -o /dev/null --proto '=https' --retry 0 \
+                      --connect-timeout "$CONNECT_TIMEOUT" --max-time "$MAX_TIME" \
+                      -w '%{http_code} %{time_namelookup} %{time_connect} %{time_appconnect} %{time_total} %{ssl_verify_result}' \
+                      "$url" 2>/dev/null)
+              rc=$?
+              read -r code dns tcp tls total verify <<< "${out:-000 0 0 0 0 -}"
+              class=$(classify "$rc" "$dns" "$tcp" "$tls")
+              echo "attempt=$i result=$class http=$code dns_s=$dns tcp_s=$tcp tls_s=$tls total_s=$total tls_verify=$verify curl_exit=$rc"
+              if [ "$rc" -eq 0 ]; then
+                ok=$((ok+1)); statuses="$statuses $code"
+              else
+                errors="$errors $class"
+              fi
+              [ "$i" -lt "$ATTEMPTS" ] && sleep "$PAUSE"
+            done
+            echo "summary $label: network_ok=$ok/$ATTEMPTS http_statuses=[${statuses# }] network_errors=[${errors# }]"
+            echo "| $label | $ok/$ATTEMPTS | ${statuses# } | ${errors# } |" >> "$GITHUB_STEP_SUMMARY"
+            if [ "$ok" -eq 0 ]; then
+              failed_targets=$((failed_targets+1))
+              echo "::error::$label: no attempt reached the server"
+            elif [ "$ok" -lt "$ATTEMPTS" ]; then
+              echo "::warning::$label: intermittent network errors ($ok/$ATTEMPTS succeeded)"
+            fi
+          done
+
+          # Red only when a target was never reachable; intermittent failures
+          # are shown as warnings and in the summary table.
+          [ "$failed_targets" -eq 0 ]
