@@ -37,6 +37,7 @@ const FAKE = {
   objectEmail: 'FAKE_OBJECT_cccc@example.test',
   objectName: 'FAKE_NAME_Zed',
   serverNote: 'FAKE_SERVER_NOTE_eeee5555',
+  testRecipient: 'FAKE_TESTBOX_dddd@example.test',
 }
 const FAKE_VALUES = Object.values(FAKE)
 
@@ -416,4 +417,115 @@ test('cli: invalid or missing mode, missing credentials and disallowed hosts exi
   const badHost = await runCli({ VITE_BACKEND_URL: 'https://evil.example/x', RECIPIENT_CHECK_MODE: 'public' })
   assert.equal(badHost.code, EXIT.CONFIG)
   assert.ok(!badHost.stdout.includes('evil.example'))
+})
+
+// ---------------------------------------------------------------------------
+// public_match: which id equals the agreed test address (addresses never printed)
+// ---------------------------------------------------------------------------
+
+/** Entries shaped like the real answer: objects with a `value` field and localised texts. */
+const objectEntry = value => ({ value, about_en: 'Label', about_ru: 'Метка', en: 'x', ru: 'y' })
+const matchEnv = (baseUrl, extra = {}) => envFor(baseUrl, 'public_match', { E2E_TEST_RECIPIENT: FAKE.testRecipient, ...extra })
+
+async function matchScenario(entries, { testRecipient = FAKE.testRecipient } = {}) {
+  const server = await startServer((req, res) => json(res, 200, emailsBody(entries)))
+  const lines = []
+  try {
+    const checked = validateRecipientConfig({ ...matchEnv(server.baseUrl), E2E_TEST_RECIPIENT: testRecipient })
+    assert.ok(checked.ok)
+    const code = await runRecipientCheck(checked.config, { log: line => lines.push(line) })
+    await new Promise(resolve => setTimeout(resolve, 100))
+    return { code, output: lines.join('\n'), calls: [...server.calls] }
+  } finally {
+    await server.close()
+  }
+}
+
+test('public_match config: needs the test address, validates it, carries no login', () => {
+  const base = { VITE_BACKEND_URL: 'https://ibronevik.ru/taxi/c/gruzvill', RECIPIENT_CHECK_MODE: 'public_match' }
+  assert.deepEqual(validateRecipientConfig(base).missing, ['E2E_TEST_RECIPIENT'])
+  assert.equal(validateRecipientConfig({ ...base, E2E_TEST_RECIPIENT: 'not an address' }).reason, 'invalid_test_recipient')
+  const ok = validateRecipientConfig({ ...base, E2E_TEST_RECIPIENT: `  ${FAKE.testRecipient} `, E2E_DRIVER_LOGIN: FAKE.login, E2E_DRIVER_PASSWORD: FAKE.password })
+  assert.ok(ok.ok)
+  assert.deepEqual(Object.keys(ok.config).sort(), ['baseUrl', 'mode', 'testRecipient'])
+  assert.equal(ok.config.testRecipient, FAKE.testRecipient)
+})
+
+test('analyze with a test address: matches by field or self, case-insensitive and trimmed', () => {
+  const found = analyzeRecipients(emailsBody({
+    1: objectEntry(FAKE.recipientA),
+    2: objectEntry(`  ${FAKE.testRecipient.toUpperCase()} `),
+    3: FAKE.testRecipient,
+    4: { other_field: FAKE.testRecipient },
+    5: { 'unsafe key! FAKE_SERVER_NOTE_eeee5555': FAKE.testRecipient },
+  }), [], FAKE.testRecipient)
+  assert.deepEqual(found.entries.map(entry => [entry.id, entry.match]), [['1', null], ['2', 'value'], ['3', '(self)'], ['4', 'other_field'], ['5', '<other>']])
+  assert.equal(found.entries[0].valueFieldType, 'string')
+  assert.equal(found.entries[0].valueFieldLooksLikeEmail, true)
+  assertNoLeak(JSON.stringify(found))
+  assert.equal(analyzeRecipients(emailsBody({ 1: FAKE.recipientA })).entries[0].match, undefined)
+})
+
+test('public_match: exactly one match is reported by id; one credential-free GET; no address printed', async () => {
+  const { code, output, calls } = await matchScenario({ 1: objectEntry(FAKE.recipientA), 2: objectEntry(FAKE.testRecipient) })
+  assert.equal(code, EXIT.OK)
+  assert.equal(calls.length, 1)
+  assert.equal(calls[0].method, 'GET')
+  assert.equal(calls[0].pathname, '/taxi/c/gruzvill/api/v1/data/')
+  assert.ok(!JSON.stringify(calls).includes(FAKE.testRecipient), 'the test address must never be sent to the server')
+  assert.match(output, /mode=public_match auth_sent=false/)
+  assert.match(output, /entry id=1 .*value_field=string value_field_looks_like_email=true matches_test_recipient=false$/m)
+  assert.match(output, /entry id=2 .*matches_test_recipient=true in=value$/m)
+  assert.match(output, /RESULT: MATCH_SINGLE \(the agreed test address is entry id=2; nothing was sent\)/)
+  assert.match(output, /requests sent: auth=0, token=0, data=1, retries=0/)
+  assertNoLeak(output)
+})
+
+test('public_match: no match and several matches are separate failures', async () => {
+  const none = await matchScenario({ 1: objectEntry(FAKE.recipientA), 2: objectEntry(FAKE.recipientB) })
+  assert.equal(none.code, EXIT.MATCH_NONE)
+  assert.match(none.output, /RESULT: MATCH_NONE \(0 of 2 entries equal the agreed test address; nothing was sent\)/)
+  assertNoLeak(none.output)
+
+  const several = await matchScenario({ 1: objectEntry(FAKE.testRecipient), 2: objectEntry(FAKE.testRecipient) })
+  assert.equal(several.code, EXIT.MATCH_MULTIPLE)
+  assert.match(several.output, /RESULT: MATCH_MULTIPLE \(2 of 2 entries/)
+  assertNoLeak(several.output)
+})
+
+test('public_match: a server message that echoes the test address is hidden', async () => {
+  const server = await startServer((req, res) => json(res, 200, { status: 'error', message: `no access for ${FAKE.testRecipient.replace(/[0-9_@.]/g, ' ')}` }))
+  try {
+    const lines = []
+    const checked = validateRecipientConfig(matchEnv(server.baseUrl))
+    const code = await runRecipientCheck(checked.config, { log: line => lines.push(line) })
+    assert.equal(code, EXIT.APP)
+    assertNoLeak(lines.join('\n'))
+  } finally {
+    await server.close()
+  }
+})
+
+test('cli public_match: only the credential-free GET is sent; stdout, stderr and summary stay clean', async () => {
+  const server = await startServer((req, res) => json(res, 200, emailsBody({ 1: objectEntry(FAKE.recipientA), 2: objectEntry(FAKE.testRecipient) })))
+  try {
+    const result = await runCli(matchEnv(server.baseUrl))
+    assert.equal(result.code, EXIT.OK)
+    assert.equal(server.calls.length, 1)
+    for (const value of [FAKE.login, FAKE.password, FAKE.testRecipient]) assert.ok(!JSON.stringify(server.calls).includes(value))
+    for (const text of [result.stdout, result.stderr, result.summary]) assertNoLeak(text, ['127.0.0.1'])
+    assert.match(result.summary, /\| GET \/data\/ site_emails \| PASS \| 200 \| MATCH_SINGLE:2 \|/)
+  } finally {
+    await server.close()
+  }
+})
+
+test('cli public_match: missing or malformed test address exits 10 before any request', async () => {
+  const missing = await runCli({ VITE_BACKEND_URL: 'https://ibronevik.ru/taxi/c/gruzvill', RECIPIENT_CHECK_MODE: 'public_match' })
+  assert.equal(missing.code, EXIT.CONFIG)
+  assert.match(missing.stdout, /missing variables: E2E_TEST_RECIPIENT/)
+  const malformed = await runCli({ VITE_BACKEND_URL: 'https://ibronevik.ru/taxi/c/gruzvill', RECIPIENT_CHECK_MODE: 'public_match', E2E_TEST_RECIPIENT: 'FAKE not an address' })
+  assert.equal(malformed.code, EXIT.CONFIG)
+  assert.match(malformed.stdout, /reason=invalid_test_recipient/)
+  assert.ok(!malformed.stdout.includes('FAKE not an address'))
 })

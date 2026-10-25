@@ -12,6 +12,9 @@
  *   query_token   one /auth + one /token, then GET with `token` and `u_hash` as
  *                 query parameters (the Taxi convention is to send both with
  *                 every authorised call).
+ *   public_match  like `public`, plus: compares every entry with the agreed test
+ *                 address (E2E_TEST_RECIPIENT, a secret) and reports WHICH ids
+ *                 match. The address itself is never printed. Needs no login.
  *
  * Safety rules (covered by tests/node/taxi-recipient-check.test.mjs):
  *  - exactly one /data/ request, no retries, no write/POST to /data/;
@@ -38,9 +41,9 @@ import {
   validateConfig,
 } from './taxi-auth-check.mjs'
 
-export const EXIT = Object.freeze({ ...BASE_EXIT, RECIPIENT_EMPTY: 70, RECIPIENT_MISSING: 71 })
+export const EXIT = Object.freeze({ ...BASE_EXIT, RECIPIENT_EMPTY: 70, RECIPIENT_MISSING: 71, MATCH_NONE: 72, MATCH_MULTIPLE: 73 })
 
-const MODES = Object.freeze(['public', 'query_token'])
+const MODES = Object.freeze(['public', 'query_token', 'public_match'])
 const REQUEST_TIMEOUT_MS = 20_000
 const MAX_LISTED_ENTRIES = 20
 const SAFE_NAME = /^[A-Za-z_][A-Za-z0-9_]{0,23}$/
@@ -61,7 +64,8 @@ export function validateRecipientConfig(env = process.env) {
     NODE_TLS_REJECT_UNAUTHORIZED: env.NODE_TLS_REJECT_UNAUTHORIZED,
     TAXI_AUTH_CHECK_ALLOW_LOOPBACK: env.TAXI_AUTH_CHECK_ALLOW_LOOPBACK,
   }
-  const checked = mode === 'public'
+  const withoutLogin = mode !== 'query_token'
+  const checked = withoutLogin
     ? validateConfig({ ...shared, E2E_DRIVER_LOGIN: 'unused', E2E_DRIVER_PASSWORD: 'unused' })
     : validateConfig({
       ...shared,
@@ -72,9 +76,15 @@ export function validateRecipientConfig(env = process.env) {
   if (!checked.ok) return checked
 
   const { baseUrl, login, password, type } = checked.config
+  if (mode === 'public_match') {
+    const testRecipient = typeof env.E2E_TEST_RECIPIENT === 'string' ? env.E2E_TEST_RECIPIENT.trim() : ''
+    if (testRecipient === '') return { ok: false, missing: ['E2E_TEST_RECIPIENT'] }
+    if (!EMAIL_LIKE.test(testRecipient)) return { ok: false, missing: [], reason: 'invalid_test_recipient' }
+    return { ok: true, config: { mode, baseUrl, testRecipient } }
+  }
   return {
     ok: true,
-    config: mode === 'public' ? { mode, baseUrl } : { mode, baseUrl, login, password, type },
+    config: mode === 'query_token' ? { mode, baseUrl, login, password, type } : { mode, baseUrl },
   }
 }
 
@@ -104,9 +114,11 @@ export function safeMessage(message, secrets = []) {
  *   { kind: 'missing', topKeys, dataKeys }
  *   { kind: 'bad_format', detail }
  *   { kind: 'empty', path, type }
- *   { kind: 'found', path, type, count, entries: [{ id, valueType, looksLikeEmail, valueKeys }] }
+ *   { kind: 'found', path, type, count, entries: [{ id, valueType, looksLikeEmail, valueKeys,
+ *                                                  valueFieldType, valueFieldLooksLikeEmail, match }] }
+ * `match` is null, '(self)' or a field name; undefined when no test address was given.
  */
-export function analyzeRecipients(json, secrets = []) {
+export function analyzeRecipients(json, secrets = [], testRecipient = null) {
   const isError = typeof json.status === 'string' && json.status.toLowerCase() === 'error'
   if (isError) return { kind: 'app_error', message: safeMessage(json.message, secrets) }
 
@@ -122,12 +134,30 @@ export function analyzeRecipients(json, secrets = []) {
   const all = Array.isArray(node) ? node.map((value, index) => [String(index), value]) : Object.entries(node)
   if (all.length === 0) return { kind: 'empty', path, type }
 
-  const entries = all.slice(0, MAX_LISTED_ENTRIES).map(([id, value]) => ({
-    id: SAFE_ID.test(id) ? id : '<masked>',
-    valueType: value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value,
-    looksLikeEmail: typeof value === 'string' && EMAIL_LIKE.test(value),
-    valueKeys: value !== null && typeof value === 'object' && !Array.isArray(value) ? safeNames(value) : [],
-  }))
+  const wanted = testRecipient ? testRecipient.trim().toLowerCase() : null
+  const same = candidate => typeof candidate === 'string' && candidate.trim().toLowerCase() === wanted
+
+  const entries = all.slice(0, MAX_LISTED_ENTRIES).map(([id, value]) => {
+    const isObject = value !== null && typeof value === 'object' && !Array.isArray(value)
+    const inner = isObject ? value.value : undefined
+    let match
+    if (wanted !== null) {
+      if (same(value)) match = '(self)'
+      else {
+        const field = isObject ? Object.keys(value).find(key => same(value[key])) : undefined
+        match = field === undefined ? null : SAFE_NAME.test(field) ? field : '<other>'
+      }
+    }
+    return {
+      id: SAFE_ID.test(id) ? id : '<masked>',
+      valueType: value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value,
+      looksLikeEmail: typeof value === 'string' && EMAIL_LIKE.test(value.trim()),
+      valueKeys: isObject ? safeNames(value) : [],
+      valueFieldType: !isObject ? 'n/a' : inner === undefined ? 'missing' : inner === null ? 'null' : Array.isArray(inner) ? 'array' : typeof inner,
+      valueFieldLooksLikeEmail: typeof inner === 'string' && EMAIL_LIKE.test(inner.trim()),
+      match,
+    }
+  })
   return { kind: 'found', path, type, count: all.length, entries }
 }
 
@@ -162,8 +192,9 @@ export async function runRecipientCheck(config, {
     row(label, 'FAIL', stage.httpStatus, stage.cls + (stage.detail ? `:${stage.detail}` : ''))
   }
 
-  log(`[CONFIG] VITE_BACKEND_URL${config.mode === 'public' ? '' : ', E2E_DRIVER_LOGIN, E2E_DRIVER_PASSWORD'} present and valid: PASS (mode=${config.mode})`)
-  log(`[RECIPIENT] mode=${config.mode} auth_sent=${config.mode === 'public' ? 'false' : 'true'}`)
+  const names = { public: '', query_token: ', E2E_DRIVER_LOGIN, E2E_DRIVER_PASSWORD', public_match: ', E2E_TEST_RECIPIENT' }[config.mode]
+  log(`[CONFIG] VITE_BACKEND_URL${names} present and valid: PASS (mode=${config.mode})`)
+  log(`[RECIPIENT] mode=${config.mode} auth_sent=${config.mode === 'query_token' ? 'true' : 'false'}`)
 
   let session = null
   if (config.mode === 'query_token') {
@@ -205,7 +236,9 @@ export async function runRecipientCheck(config, {
   counts.data += 1
   const label = 'GET /data/ site_emails'
   const round = await sendRequest(buildDataUrl(config.baseUrl, session), { method: 'GET', fetchImpl, timeoutMs })
-  const secrets = session ? [config.login, config.password, session.token, session.uHash] : []
+  const secrets = session
+    ? [config.login, config.password, session.token, session.uHash]
+    : config.testRecipient ? [config.testRecipient] : []
 
   if (round.kind === 'network') { const s = toStage('data', round); fail(label, s); return finish(s.exit) }
   if (round.kind === 'http') {
@@ -218,12 +251,12 @@ export async function runRecipientCheck(config, {
   if (round.kind === 'format') { const s = toStage('data', round); fail(label, s); return finish(s.exit) }
 
   log(`[RECIPIENT] ${label}: PASS (HTTP ${round.status}, ${round.ms} ms)`)
-  const analysis = analyzeRecipients(round.json, secrets)
+  const analysis = analyzeRecipients(round.json, secrets, config.testRecipient ?? null)
 
   switch (analysis.kind) {
     case 'app_error':
       log(`[RECIPIENT] RESULT: APP_ERROR (HTTP ${round.status}, status:"error", message="${analysis.message}")`)
-      if (config.mode === 'public')
+      if (config.mode !== 'query_token')
         log('[RECIPIENT] HINT: an application error without credentials can mean that authorisation is required (not proven).')
       row(label, 'FAIL', round.status, `APP_ERROR:${analysis.message}`)
       return finish(EXIT.APP)
@@ -244,9 +277,24 @@ export async function runRecipientCheck(config, {
       log(`[RECIPIENT] response shape: found at ${analysis.path}, type=${analysis.type}, entries=${analysis.count}`)
       for (const entry of analysis.entries) {
         const keys = entry.valueKeys.length > 0 ? ` value_keys=${entry.valueKeys.join(',')}` : ''
-        log(`[RECIPIENT] entry id=${entry.id} value_type=${entry.valueType} looks_like_email=${entry.looksLikeEmail}${keys}`)
+        const field = entry.valueType === 'object' ? ` value_field=${entry.valueFieldType} value_field_looks_like_email=${entry.valueFieldLooksLikeEmail}` : ''
+        const matched = entry.match === undefined ? '' : ` matches_test_recipient=${entry.match !== null}${entry.match ? ` in=${entry.match}` : ''}`
+        log(`[RECIPIENT] entry id=${entry.id} value_type=${entry.valueType} looks_like_email=${entry.looksLikeEmail}${keys}${field}${matched}`)
       }
       if (analysis.count > analysis.entries.length) log(`[RECIPIENT] (${analysis.count - analysis.entries.length} more entries not listed)`)
+      if (config.mode === 'public_match') {
+        const hits = analysis.entries.filter(entry => entry.match)
+        const unlisted = analysis.count > analysis.entries.length ? ' (some entries were not compared)' : ''
+        if (hits.length === 1) {
+          log(`[RECIPIENT] RESULT: MATCH_SINGLE (the agreed test address is entry id=${hits[0].id}; nothing was sent)${unlisted}`)
+          row(label, 'PASS', round.status, `MATCH_SINGLE:${hits[0].id}`)
+          return finish(EXIT.OK)
+        }
+        const verdictName = hits.length === 0 ? 'MATCH_NONE' : 'MATCH_MULTIPLE'
+        log(`[RECIPIENT] RESULT: ${verdictName} (${hits.length} of ${analysis.count} entries equal the agreed test address; nothing was sent)${unlisted}`)
+        row(label, 'FAIL', round.status, verdictName)
+        return finish(hits.length === 0 ? EXIT.MATCH_NONE : EXIT.MATCH_MULTIPLE)
+      }
       const verdict = analysis.count === 1 ? 'FOUND_SINGLE' : 'FOUND_AMBIGUOUS'
       log(`[RECIPIENT] RESULT: ${verdict} (${analysis.count} candidate${analysis.count === 1 ? '' : 's'}; no recipient was selected; nothing was sent)`)
       row(label, 'PASS', round.status, `${verdict}:${analysis.count}`)

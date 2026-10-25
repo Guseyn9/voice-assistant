@@ -11,6 +11,11 @@ name: Taxi Recipient Check
 #                   query parameters. Runs in the `taxi-test` Environment: only
 #                   after the required reviewer approves, only on the branches in
 #                   that Environment's deployment-branch policy.
+#  * public_match — like public (no login, no /auth, no /token), but compares each
+#                   entry with the agreed test address held in the Environment
+#                   secret E2E_TEST_RECIPIENT and prints WHICH ids match. The
+#                   address is never printed and never sent anywhere. Same
+#                   Environment protection as query_token.
 #
 # Triggers: `workflow_dispatch` only (no push, pull_request, pull_request_target,
 # workflow_run or schedule), so a PR or a fork cannot start it.
@@ -19,13 +24,14 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "public = no credentials; query_token = authorised GET (needs approval)"
+        description: "public = no credentials; query_token = authorised GET; public_match = compare with the agreed test address (the last two need approval)"
         type: choice
         required: true
         default: public
         options:
           - public
           - query_token
+          - public_match
 
 permissions: {}
 
@@ -115,4 +121,34 @@ jobs:
           # Secrets: visible to this step only.
           E2E_DRIVER_LOGIN: ${{ secrets.E2E_DRIVER_LOGIN }}
           E2E_DRIVER_PASSWORD: ${{ secrets.E2E_DRIVER_PASSWORD }}
+        run: node scripts/taxi-recipient-check.mjs
+
+  recipient-match:
+    name: Which id is the agreed test address (approval required)
+    needs: offline-tests
+    if: inputs.mode == 'public_match'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    # The agreed test address is an Environment secret; it is never sent to the API.
+    environment: taxi-test
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Show what is being run
+        run: |
+          echo "ref=${GITHUB_REF} sha=${GITHUB_SHA}"
+          echo "node=$(node --version)"
+          sha256sum scripts/taxi-auth-check.mjs scripts/taxi-recipient-check.mjs
+
+      - name: Taxi recipient check (public_match)
+        env:
+          RECIPIENT_CHECK_MODE: public_match
+          VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL }}
+          # Secret: visible to this step only. No login or password is passed.
+          E2E_TEST_RECIPIENT: ${{ secrets.E2E_TEST_RECIPIENT }}
         run: node scripts/taxi-recipient-check.mjs
